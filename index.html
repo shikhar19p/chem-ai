@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Reactive Extraction Optimizer</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#07111f;--surface:#0d1a2d;--card:#111e33;--card2:#162440;--border:#1a3356;--border2:#1f3d66;--accent:#22d3ee;--accent2:#818cf8;--warn:#fbbf24;--danger:#f87171;--text:#f1f5f9;--muted:#64748b;--muted2:#334155;--green:#34d399;--blue:#60a5fa;--purple:#a78bfa;--orange:#fb923c;--red:#f87171;--pink:#f472b6;--teal:#2dd4bf;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:var(--surface);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.app{display:flex;flex-direction:column;min-height:100vh;}
+.header{background:linear-gradient(135deg,#071a35 0%,#0d2448 50%,#071a35 100%);border-bottom:1px solid var(--border2);padding:14px 24px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 24px rgba(0,0,0,0.4);}
+.header-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 16px rgba(34,211,238,0.3);}
+.header h1{font-size:1.3rem;font-weight:700;color:var(--text);}
+.header p{font-size:0.75rem;color:var(--muted);margin-top:2px;}
+.header-badge{margin-left:auto;background:rgba(34,211,238,0.1);border:1px solid var(--accent);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:0.7rem;font-weight:600;}
+.main{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:270px;min-width:270px;background:var(--surface);border-right:1px solid var(--border);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.content{flex:1;overflow-y:auto;padding:20px;background:var(--bg);}
+.section-title{font-size:0.65rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;}
+label{display:block;font-size:0.72rem;color:var(--muted);margin-bottom:4px;font-weight:500;}
+select,input[type=range],input[type=text],input[type=number]{width:100%;background:var(--card);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:6px 8px;font-size:0.78rem;outline:none;transition:border-color 0.2s;}
+select:focus,input:focus{border-color:var(--accent);}
+input[type=range]{padding:4px;accent-color:var(--accent);cursor:pointer;}
+.slider-row{display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-top:2px;}
+.btn{width:100%;padding:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#07111f;font-weight:700;font-size:0.82rem;border:none;border-radius:8px;cursor:pointer;transition:all 0.2s;box-shadow:0 0 16px rgba(34,211,238,0.2);}
+.btn:hover{transform:translateY(-1px);box-shadow:0 0 24px rgba(34,211,238,0.4);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.btn-sm{padding:6px 12px;font-size:0.72rem;background:var(--card2);color:var(--accent);border:1px solid var(--accent);border-radius:6px;cursor:pointer;font-weight:600;width:auto;}
+.btn-sm:hover{background:rgba(34,211,238,0.1);}
+.nrtl-box{background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:10px;}
+.nrtl-row{display:flex;justify-content:space-between;font-size:0.72rem;padding:3px 0;border-bottom:1px solid var(--border);}
+.nrtl-row:last-child{border-bottom:none;}
+.nrtl-row span:first-child{color:var(--muted);}
+.nrtl-row span:last-child{color:var(--accent);font-weight:600;}
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);padding:4px;border-radius:10px;border:1px solid var(--border);flex-wrap:wrap;}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:0.7rem;font-weight:600;color:var(--muted);cursor:pointer;border-radius:7px;transition:all 0.2s;white-space:nowrap;}
+.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#07111f;box-shadow:0 2px 12px rgba(34,211,238,0.3);}
+.tab:hover:not(.active){background:var(--card);color:var(--text);}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;}
+.card.accent-top{border-top:2px solid var(--accent);}.card.green-top{border-top:2px solid var(--green);}.card.purple-top{border-top:2px solid var(--purple);}.card.warn-top{border-top:2px solid var(--warn);}.card.teal-top{border-top:2px solid var(--teal);}
+.card-title{font-size:0.78rem;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.pred-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+.pred-card{background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:14px;position:relative;overflow:hidden;}
+.pred-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.pred-card.kd::before{background:var(--accent);}
+.pred-card.epct::before{background:var(--green);}
+.pred-card.z::before{background:var(--purple);}
+.pred-card.sf::before{background:var(--warn);}
+.pred-label{font-size:0.65rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
+.pred-name{font-size:0.78rem;font-weight:700;color:var(--text);margin:2px 0 10px;}
+.model-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(26,51,86,0.5);}
+.model-row:last-child{border-bottom:none;}
+.model-tag{font-size:0.65rem;color:var(--muted);font-weight:500;}
+.model-val{font-size:0.75rem;font-weight:700;}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;}
+.badge-out{background:rgba(251,191,36,0.15);color:var(--warn);border:1px solid rgba(251,191,36,0.3);}
+.badge-in{background:rgba(52,211,153,0.15);color:var(--green);border:1px solid rgba(52,211,153,0.3);}
+.chart-wrap{position:relative;height:280px;}
+.chart-wrap-lg{position:relative;height:360px;}
+.chart-wrap-sm{position:relative;height:220px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.metric-tile{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:12px;text-align:center;}
+.metric-val{font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.metric-lbl{font-size:0.65rem;color:var(--muted);margin-top:2px;}
+.sens-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.sens-controls label{margin:0;white-space:nowrap;}
+.sens-controls select{width:auto;padding:5px 8px;}
+.heat-wrap{overflow-x:auto;}
+.heat-table{border-collapse:collapse;font-size:0.65rem;min-width:400px;}
+.heat-table th{background:var(--card2);color:var(--muted);padding:6px 8px;text-align:center;border:1px solid var(--border);font-weight:600;}
+.heat-table td{padding:5px 8px;text-align:center;border:1px solid var(--border);font-weight:600;font-size:0.68rem;}
+.iso-params{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.iso-param-card{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;min-width:140px;}
+.iso-param-title{font-size:0.62rem;color:var(--muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;}
+.iso-param-row{display:flex;justify-content:space-between;font-size:0.7rem;gap:12px;}
+.iso-param-row span:first-child{color:var(--muted);}
+.iso-param-row span:last-child{color:var(--accent);font-weight:700;}
+.status-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:0.72rem;}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.pulse{animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+/* Chemistry styles */
+.acid-strip{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.acid-chip{padding:5px 12px;border-radius:20px;font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--card2);color:var(--muted);transition:all 0.2s;}
+.acid-chip.active{background:linear-gradient(135deg,rgba(34,211,238,0.2),rgba(129,140,248,0.2));border-color:var(--accent);color:var(--accent);}
+.acid-chip:hover:not(.active){border-color:var(--accent);color:var(--text);}
+.chem-grid{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px;}
+.mol-box{background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.mol-svg{width:220px;height:140px;}
+.mol-name{font-size:0.78rem;font-weight:700;color:var(--text);}
+.mol-formula{font-size:0.9rem;font-weight:600;color:var(--accent);letter-spacing:0.02em;}
+.prop-table{width:100%;border-collapse:collapse;font-size:0.7rem;}
+.prop-table tr{border-bottom:1px solid var(--border);}
+.prop-table tr:last-child{border-bottom:none;}
+.prop-table td:first-child{color:var(--muted);padding:5px 0;width:45%;}
+.prop-table td:last-child{color:var(--text);font-weight:600;text-align:right;}
+.flow-diagram{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:12px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;margin-bottom:12px;}
+.flow-step{background:var(--card);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:0.68rem;text-align:center;}
+.flow-step .step-label{color:var(--muted);font-size:0.6rem;margin-bottom:2px;}
+.flow-step .step-name{color:var(--text);font-weight:600;}
+.flow-arrow{color:var(--accent);font-size:1rem;font-weight:700;}
+.inter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px;}
+.inter-card{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px;}
+.inter-name{font-size:0.72rem;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.inter-formula{font-size:0.7rem;color:var(--purple);margin-bottom:4px;font-family:monospace;}
+.inter-role{font-size:0.65rem;color:var(--muted);line-height:1.4;}
+.eq-box{background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.2);border-radius:8px;padding:12px;margin-bottom:12px;text-align:center;}
+.eq-text{font-size:0.8rem;color:var(--accent);font-family:monospace;margin-bottom:4px;}
+.eq-desc{font-size:0.65rem;color:var(--muted);}
+.stoich-table{width:100%;border-collapse:collapse;font-size:0.7rem;margin-bottom:12px;}
+.stoich-table th{background:var(--card2);color:var(--muted);padding:6px 8px;text-align:left;border:1px solid var(--border);font-weight:600;font-size:0.65rem;}
+.stoich-table td{padding:5px 8px;border:1px solid var(--border);}
+.stoich-table td:last-child{color:var(--green);font-weight:600;}
+.mech-text{font-size:0.7rem;color:var(--muted);line-height:1.7;background:var(--card2);border-left:3px solid var(--accent2);padding:10px 12px;border-radius:0 6px 6px 0;}
+.r2-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.r2-bar-label{width:90px;font-size:0.68rem;color:var(--muted);text-align:right;}
+.r2-bar-track{flex:1;height:16px;background:var(--card2);border-radius:8px;overflow:hidden;position:relative;}
+.r2-bar-fill{height:100%;border-radius:8px;transition:width 0.8s ease;display:flex;align-items:center;padding-left:6px;}
+.r2-bar-fill span{font-size:0.62rem;font-weight:700;color:#07111f;white-space:nowrap;}
+.next-card{background:linear-gradient(135deg,rgba(34,211,238,0.08),rgba(129,140,248,0.08));border:1px solid rgba(34,211,238,0.25);border-radius:8px;padding:10px 14px;margin-bottom:8px;}
+.next-rank{font-size:0.65rem;color:var(--accent);font-weight:700;margin-bottom:2px;}
+.next-vals{display:flex;gap:12px;flex-wrap:wrap;}
+.next-val{font-size:0.7rem;}
+.next-val span:first-child{color:var(--muted);margin-right:4px;}
+.next-val span:last-child{color:var(--text);font-weight:600;}
+.r2-model-colors{RSM:var(--warn);RandomForest:var(--green);XGBoost:var(--blue);GPR:var(--accent);ANN:var(--purple);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useEffect, useRef, useCallback} = React;
+const API = "http://localhost:8000";
+
+// ── ACID DATABASE ────────────────────────────────────────────────────────────
+const ACIDS = [
+  {
+    id:"propionic", name:"Propionic Acid", formula:"CH\u2083CH\u2082COOH", mw:74.08,
+    pka:4.87, bp:141.1, mp:-20.5, density:0.993, solubility:"Miscible",
+    color:"#22d3ee",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="10" y="55" font-size="11" fill="#94a3b8" font-family="monospace">CH\u2083</text>
+      <line x1="42" y1="50" x2="70" y2="50" stroke="#22d3ee" stroke-width="2"/>
+      <text x="72" y="55" font-size="11" fill="#94a3b8" font-family="monospace">CH\u2082</text>
+      <line x1="102" y1="50" x2="130" y2="50" stroke="#22d3ee" stroke-width="2"/>
+      <text x="132" y="55" font-size="11" fill="#22d3ee" font-family="monospace">C</text>
+      <line x1="142" y1="48" x2="142" y2="28" stroke="#34d399" stroke-width="2"/>
+      <line x1="145" y1="48" x2="145" y2="28" stroke="#34d399" stroke-width="2"/>
+      <text x="136" y="24" font-size="11" fill="#34d399" font-family="monospace">O</text>
+      <line x1="148" y1="52" x2="168" y2="68" stroke="#60a5fa" stroke-width="2"/>
+      <text x="170" y="73" font-size="11" fill="#60a5fa" font-family="monospace">OH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Acid-TBA Ion Pair",formula:"[CH\u2083CH\u2082COO\u207B][TBAH\u207A]",role:"Formed by proton transfer from acid to TBA nitrogen. Primary extraction species."},
+      {name:"Tri-n-butylamine",formula:"N(C\u2084H\u2089)\u2083",role:"Lipophilic extractant dissolved in DES. Electron donor for H-bond complex formation."},
+      {name:"1:1 Complex",formula:"CH\u2083CH\u2082COOH\u00B7TBA",role:"Hydrogen-bonded adduct. KD increases with TBA concentration."},
+      {name:"1:2 Complex",formula:"(CH\u2083CH\u2082COOH)\u2082\u00B7TBA",role:"At high Cin, over-loading species. Reduces selectivity at high acid concentration."},
+    ],
+    stoichiometry:[
+      {species:"Propionic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"Initial Cin = 0.05-0.20 N"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1 mol",note:"5-20 wt% in DES"},
+      {species:"Ion-pair complex",role:"Product (org)",coeff:"1 mol",note:"Transferred to organic phase"},
+      {species:"Water (aq)",role:"Released",coeff:"trace",note:"Hydration shell stripped"},
+    ],
+    equation:"CH\u2083CH\u2082COOH\u208Aaq\u208B + TBA\u208Aorg\u208B \u21CC [CH\u2083CH\u2082COO\u207B\u00B7TBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Reactive liquid-liquid extraction equilibrium at 306 K, O/A = 1:1",
+    mechanism:"Propionic acid (pKa 4.87) transfers from aqueous to DES-organic phase via proton donation to TBA nitrogen lone pair. The resulting ion pair is stabilised by the DES Thymol:Menthol matrix through hydrogen bonding and van der Waals interactions. Distribution coefficient KD increases with TBA loading because more extractant sites are available. The DES 2:1 Thymol:Menthol ratio provides optimal solvation.",
+    props:[
+      {k:"Molar Mass",v:"74.08 g/mol"},{k:"pKa",v:"4.87"},{k:"Boiling Point",v:"141.1 \u00B0C"},
+      {k:"Melting Point",v:"-20.5 \u00B0C"},{k:"Density",v:"0.993 g/mL"},{k:"Water Solubility",v:"Miscible"},
+      {k:"Dipole Moment",v:"1.75 D"},{k:"logP",v:"0.33"},
+    ]
+  },
+  {
+    id:"acetic", name:"Acetic Acid", formula:"CH\u2083COOH", mw:60.05,
+    pka:4.76, bp:117.9, mp:16.6, density:1.049, solubility:"Miscible",
+    color:"#34d399",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="20" y="55" font-size="11" fill="#94a3b8" font-family="monospace">CH\u2083</text>
+      <line x1="52" y1="50" x2="90" y2="50" stroke="#34d399" stroke-width="2"/>
+      <text x="92" y="55" font-size="11" fill="#34d399" font-family="monospace">C</text>
+      <line x1="102" y1="48" x2="102" y2="28" stroke="#34d399" stroke-width="2"/>
+      <line x1="105" y1="48" x2="105" y2="28" stroke="#34d399" stroke-width="2"/>
+      <text x="96" y="24" font-size="11" fill="#34d399" font-family="monospace">O</text>
+      <line x1="108" y1="52" x2="130" y2="68" stroke="#60a5fa" stroke-width="2"/>
+      <text x="132" y="73" font-size="11" fill="#60a5fa" font-family="monospace">OH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Acetic-TBA Complex",formula:"CH\u2083COO\u207B\u00B7TBAH\u207A",role:"Ion pair complex; slightly weaker than propionic due to lower pKa difference."},
+      {name:"Acetic Acid Dimer",formula:"(CH\u2083COOH)\u2082",role:"Dimerises in organic phase via double H-bond. Affects loading ratio Z."},
+      {name:"DES-Acid Solvate",formula:"AcOH\u00B7Thymol",role:"Thymol phenol group H-bonds to carbonyl. Stabilises organic phase loading."},
+    ],
+    stoichiometry:[
+      {species:"Acetic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"Cin = 0.05-0.20 N"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1 mol",note:"5-20 wt%"},
+      {species:"Acetic-TBA pair",role:"Product (org)",coeff:"1 mol",note:"DES-solvated"},
+    ],
+    equation:"CH\u2083COOH\u208Aaq\u208B + TBA\u208Aorg\u208B \u21CC [CH\u2083COO\u207B\u00B7TBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Equilibrium extraction at 306 K, O/A = 1:1",
+    mechanism:"Acetic acid (pKa 4.76) has the lowest pKa among C2-C5 acids enabling strong proton donation. However its small size means lower KD vs propionic at same TBA loading. The Thymol hydroxyl in DES forms supplementary H-bonds with acetate anion, improving phase selectivity.",
+    props:[
+      {k:"Molar Mass",v:"60.05 g/mol"},{k:"pKa",v:"4.76"},{k:"Boiling Point",v:"117.9 \u00B0C"},
+      {k:"Melting Point",v:"16.6 \u00B0C"},{k:"Density",v:"1.049 g/mL"},{k:"Water Solubility",v:"Miscible"},
+      {k:"Dipole Moment",v:"1.70 D"},{k:"logP",v:"-0.17"},
+    ]
+  },
+  {
+    id:"butyric", name:"Butyric Acid", formula:"C\u2083H\u2087COOH", mw:88.11,
+    pka:4.82, bp:163.8, mp:-5.1, density:0.959, solubility:"6 g/100mL",
+    color:"#a78bfa",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="2" y="55" font-size="10" fill="#94a3b8" font-family="monospace">CH\u2083</text>
+      <line x1="34" y1="50" x2="56" y2="50" stroke="#a78bfa" stroke-width="2"/>
+      <text x="58" y="55" font-size="10" fill="#94a3b8" font-family="monospace">CH\u2082</text>
+      <line x1="88" y1="50" x2="110" y2="50" stroke="#a78bfa" stroke-width="2"/>
+      <text x="112" y="55" font-size="10" fill="#94a3b8" font-family="monospace">CH\u2082</text>
+      <line x1="142" y1="50" x2="162" y2="50" stroke="#a78bfa" stroke-width="2"/>
+      <text x="164" y="55" font-size="10" fill="#a78bfa" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Butyrate Ion Pair",formula:"[C\u2083H\u2087COO\u207B][TBAH\u207A]",role:"More hydrophobic than acetate/propionate pair, higher KD expected."},
+      {name:"1:1 H-bond Complex",formula:"C\u2083H\u2087COOH\u00B7TBA",role:"Stable due to longer alkyl chain increasing hydrophobic solvation in DES."},
+      {name:"Organic Aggregate",formula:"(C\u2083H\u2087COOH)n\u00B7TBA",role:"Aggregate formation at high loading; reduces effective extraction per mole TBA."},
+    ],
+    stoichiometry:[
+      {species:"Butyric Acid (aq)",role:"Reactant",coeff:"1 mol",note:"C4 carboxylic acid"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1 mol",note:"In DES matrix"},
+      {species:"Butyrate-TBA",role:"Product (org)",coeff:"1 mol",note:"Hydrophobic complex"},
+    ],
+    equation:"C\u2083H\u2087COOH\u208Aaq\u208B + TBA\u208Aorg\u208B \u21CC [C\u2083H\u2087COO\u207B\u00B7TBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Butyric acid reactive extraction equilibrium",
+    mechanism:"Butyric acid (C4) has greater hydrophobicity (logP 0.79) than acetic or propionic acids, leading to higher inherent organic-phase affinity. TBA forms a slightly stronger ion pair with butyrate due to better charge delocalization across the longer alkyl chain. DES Thymol:Menthol matrix provides enhanced solvation through combined H-bonding and dispersion interactions.",
+    props:[
+      {k:"Molar Mass",v:"88.11 g/mol"},{k:"pKa",v:"4.82"},{k:"Boiling Point",v:"163.8 \u00B0C"},
+      {k:"Melting Point",v:"-5.1 \u00B0C"},{k:"Density",v:"0.959 g/mL"},{k:"Water Solubility",v:"6 g/100mL"},
+      {k:"Dipole Moment",v:"1.65 D"},{k:"logP",v:"0.79"},
+    ]
+  },
+  {
+    id:"valeric", name:"Valeric Acid", formula:"C\u2084H\u2089COOH", mw:102.13,
+    pka:4.84, bp:186.1, mp:-34.5, density:0.939, solubility:"3.7 g/100mL",
+    color:"#fb923c",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="2" y="55" font-size="9" fill="#94a3b8" font-family="monospace">CH\u2083(CH\u2082)\u2083</text>
+      <line x1="80" y1="50" x2="120" y2="50" stroke="#fb923c" stroke-width="2"/>
+      <text x="122" y="55" font-size="10" fill="#fb923c" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Valerate-TBA Ion Pair",formula:"[C\u2084H\u2089COO\u207B][TBAH\u207A]",role:"Highest KD among straight-chain C2-C5 acids due to hydrophobicity."},
+      {name:"Micelle-like Aggregate",formula:"[ValTBA]n",role:"At elevated loading, reverse micelles may form in organic phase."},
+    ],
+    stoichiometry:[
+      {species:"Valeric Acid (aq)",role:"Reactant",coeff:"1 mol",note:"C5 acid, partially soluble"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1 mol",note:"5-20 wt% in DES"},
+      {species:"Valerate-TBA",role:"Product (org)",coeff:"1 mol",note:"Hydrophobic complex"},
+    ],
+    equation:"C\u2084H\u2089COOH\u208Aaq\u208B + TBA\u208Aorg\u208B \u21CC [C\u2084H\u2089COO\u207B\u00B7TBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Valeric acid reactive extraction equilibrium",
+    mechanism:"Valeric acid (C5, pKa 4.84) is the most hydrophobic of the short-chain series studied. Its lower aqueous solubility (3.7 g/100mL) means natural partition toward organic phase is already favoured. TBA complexation further enhances KD. The DES matrix provides superior solvation vs pure organic solvents, reducing third-phase formation at high loading.",
+    props:[
+      {k:"Molar Mass",v:"102.13 g/mol"},{k:"pKa",v:"4.84"},{k:"Boiling Point",v:"186.1 \u00B0C"},
+      {k:"Melting Point",v:"-34.5 \u00B0C"},{k:"Density",v:"0.939 g/mL"},{k:"Water Solubility",v:"3.7 g/100mL"},
+      {k:"Dipole Moment",v:"1.61 D"},{k:"logP",v:"1.38"},
+    ]
+  },
+  {
+    id:"hexanoic", name:"Hexanoic Acid", formula:"C\u2085H\u2081\u2081COOH", mw:116.16,
+    pka:4.85, bp:205.2, mp:-3.4, density:0.927, solubility:"1 g/100mL",
+    color:"#f472b6",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="2" y="55" font-size="9" fill="#94a3b8" font-family="monospace">CH\u2083(CH\u2082)\u2084</text>
+      <line x1="78" y1="50" x2="120" y2="50" stroke="#f472b6" stroke-width="2"/>
+      <text x="122" y="55" font-size="10" fill="#f472b6" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Hexanoate Ion Pair",formula:"[C\u2085H\u2081\u2081COO\u207B][TBAH\u207A]",role:"Very high KD; organic phase strongly favoured."},
+      {name:"DES-Hexanoate Solvate",formula:"HexOH\u00B7DES",role:"Menthol alkyl groups provide van der Waals stabilisation of C6 chain."},
+    ],
+    stoichiometry:[
+      {species:"Hexanoic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"C6, caproic acid"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1 mol",note:"5-20 wt% in DES"},
+      {species:"Hexanoate-TBA",role:"Product (org)",coeff:"1 mol",note:"Lipophilic complex"},
+    ],
+    equation:"C\u2085H\u2081\u2081COOH\u208Aaq\u208B + TBA\u208Aorg\u208B \u21CC [C\u2085H\u2081\u2081COO\u207B\u00B7TBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Hexanoic acid reactive extraction equilibrium",
+    mechanism:"Hexanoic (caproic) acid has very low aqueous solubility. Extraction is nearly quantitative at all TBA levels. The long C6 chain creates strong hydrophobic interactions with Menthol cyclohexyl ring in the DES, providing exceptional solvation of the ion pair complex. Phase separation is clean with minimal emulsification.",
+    props:[
+      {k:"Molar Mass",v:"116.16 g/mol"},{k:"pKa",v:"4.85"},{k:"Boiling Point",v:"205.2 \u00B0C"},
+      {k:"Melting Point",v:"-3.4 \u00B0C"},{k:"Density",v:"0.927 g/mL"},{k:"Water Solubility",v:"1 g/100mL"},
+      {k:"Dipole Moment",v:"1.58 D"},{k:"logP",v:"1.92"},
+    ]
+  },
+  {
+    id:"lactic", name:"Lactic Acid", formula:"CH\u2083CH(OH)COOH", mw:90.08,
+    pka:3.86, bp:122, mp:18, density:1.209, solubility:"Miscible",
+    color:"#2dd4bf",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="5" y="55" font-size="10" fill="#94a3b8" font-family="monospace">CH\u2083</text>
+      <line x1="37" y1="50" x2="65" y2="50" stroke="#2dd4bf" stroke-width="2"/>
+      <text x="67" y="55" font-size="9" fill="#2dd4bf" font-family="monospace">CH</text>
+      <line x1="82" y1="46" x2="82" y2="30" stroke="#60a5fa" stroke-width="2"/>
+      <text x="78" y="26" font-size="9" fill="#60a5fa" font-family="monospace">OH</text>
+      <line x1="90" y1="50" x2="118" y2="50" stroke="#2dd4bf" stroke-width="2"/>
+      <text x="120" y="55" font-size="9" fill="#2dd4bf" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Lactate-TBA Complex",formula:"[CH\u2083CH(OH)COO\u207B][TBAH\u207A]",role:"Alpha-OH group creates secondary H-bond network."},
+      {name:"Intramolecular H-bond",formula:"Lactate\u00B7DES",role:"OH and COOH create cyclic H-bond with Thymol hydroxyl — unique to alpha-hydroxy acids."},
+      {name:"Lactate Chelate",formula:"TBA-Lac-DES",role:"Ternary complex stabilised by both TBA amine and DES H-bond donors."},
+    ],
+    stoichiometry:[
+      {species:"Lactic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"Alpha-hydroxy acid"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1 mol",note:"5-20 wt%"},
+      {species:"TBA-DES-Lactate",role:"Product (org)",coeff:"1 mol",note:"Ternary complex"},
+    ],
+    equation:"CH\u2083CH(OH)COOH\u208Aaq\u208B + TBA\u208Aorg\u208B \u21CC [Lac\u207B\u00B7TBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Alpha-hydroxy acid extraction with auxiliary H-bonding",
+    mechanism:"Lactic acid (pKa 3.86) is a stronger acid than propionic, enabling more complete ionisation and proton transfer to TBA. The alpha-hydroxyl group provides an additional hydrogen bond donor/acceptor site. This creates a ternary complex with both TBA and DES (Thymol-OH), leading to very high loading ratios Z. Extraction efficiency is excellent even at low TBA levels.",
+    props:[
+      {k:"Molar Mass",v:"90.08 g/mol"},{k:"pKa",v:"3.86"},{k:"Boiling Point",v:"122 \u00B0C"},
+      {k:"Melting Point",v:"18 \u00B0C"},{k:"Density",v:"1.209 g/mL"},{k:"Water Solubility",v:"Miscible"},
+      {k:"Dipole Moment",v:"2.20 D"},{k:"logP",v:"-0.62"},
+    ]
+  },
+  {
+    id:"citric", name:"Citric Acid", formula:"C\u2086H\u2088O\u2087", mw:192.12,
+    pka:3.13, bp:"decomp.", mp:153, density:1.665, solubility:"59.2 g/100mL",
+    color:"#fbbf24",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="2" y="30" font-size="8.5" fill="#94a3b8" font-family="monospace">HOOCCH\u2082</text>
+      <line x1="72" y1="26" x2="95" y2="46" stroke="#fbbf24" stroke-width="2"/>
+      <text x="96" y="52" font-size="8.5" fill="#fbbf24" font-family="monospace">C(OH)</text>
+      <line x1="130" y1="46" x2="152" y2="26" stroke="#fbbf24" stroke-width="2"/>
+      <text x="154" y="30" font-size="8.5" fill="#94a3b8" font-family="monospace">CH\u2082COOH</text>
+      <line x1="110" y1="55" x2="110" y2="72" stroke="#fbbf24" stroke-width="2"/>
+      <text x="96" y="84" font-size="8.5" fill="#fbbf24" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Mono-citrate-TBA",formula:"[Cit\u207B][TBAH\u207A]",role:"First deprotonation complex (pKa1=3.13). Dominant at low pH."},
+      {name:"Di-citrate-2TBA",formula:"[Cit\u00B2\u207B][TBAH\u207A]\u2082",role:"Two TBA molecules per dianion. Forms at higher TBA loading."},
+      {name:"Citrate Chelate Ring",formula:"Cit-DES\u00B2\u207B",role:"OH group chelates with two Thymol molecules forming ring structure."},
+    ],
+    stoichiometry:[
+      {species:"Citric Acid (aq)",role:"Reactant",coeff:"1 mol",note:"Triprotic acid, pKa 3.13/4.76/6.39"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1-3 mol",note:"Stoichiometry depends on pH"},
+      {species:"Citrate-TBA complex",role:"Product (org)",coeff:"1 mol",note:"Partially deprotonated"},
+    ],
+    equation:"H\u2083Cit\u208Aaq\u208B + n\u00B7TBA\u208Aorg\u208B \u21CC [H\u2083\u208B\u2099Cit\u207F\u207B\u00B7nTBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Multi-step reactive extraction of triprotic citric acid",
+    mechanism:"Citric acid (triprotic, pKa1=3.13) offers complex extraction chemistry with 1, 2, or 3 TBA molecules per acid molecule depending on pH and TBA concentration. The central hydroxyl group enables chelation with DES hydroxyl groups, creating stable ternary complexes. High molecular weight reduces phase transfer rate but DES low viscosity aids kinetics. Extraction is highly selective vs mineral acids.",
+    props:[
+      {k:"Molar Mass",v:"192.12 g/mol"},{k:"pKa1",v:"3.13"},{k:"pKa2",v:"4.76"},{k:"pKa3",v:"6.39"},
+      {k:"Melting Point",v:"153 \u00B0C"},{k:"Density",v:"1.665 g/mL"},{k:"Water Solubility",v:"59.2 g/100mL"},
+      {k:"logP",v:"-1.64"},
+    ]
+  },
+  {
+    id:"succinic", name:"Succinic Acid", formula:"HOOCCH\u2082CH\u2082COOH", mw:118.09,
+    pka:4.21, bp:"decomp.", mp:185, density:1.572, solubility:"5.8 g/100mL",
+    color:"#60a5fa",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="2" y="55" font-size="9" fill="#60a5fa" font-family="monospace">HOOC</text>
+      <line x1="40" y1="50" x2="65" y2="50" stroke="#60a5fa" stroke-width="2"/>
+      <text x="67" y="55" font-size="9" fill="#94a3b8" font-family="monospace">CH\u2082</text>
+      <line x1="90" y1="50" x2="115" y2="50" stroke="#60a5fa" stroke-width="2"/>
+      <text x="117" y="55" font-size="9" fill="#94a3b8" font-family="monospace">CH\u2082</text>
+      <line x1="142" y1="50" x2="165" y2="50" stroke="#60a5fa" stroke-width="2"/>
+      <text x="167" y="55" font-size="9" fill="#60a5fa" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Succinate Mono-TBA",formula:"[HOOCCH\u2082CH\u2082COO\u207B][TBAH\u207A]",role:"Half-neutralised complex; one COOH free for DES H-bonding."},
+      {name:"Succinate Di-TBA",formula:"[\u207BOOCC\u2082H\u2084COO\u207B][TBAH\u207A]\u2082",role:"Fully neutralised; highest loading ratio Z."},
+      {name:"Cyclic Anhydride Byp.",formula:"Succinic anhydride",role:"Minor byproduct at high temperature; reduces effective extraction yield."},
+    ],
+    stoichiometry:[
+      {species:"Succinic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"Dicarboxylic acid"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1-2 mol",note:"5-20 wt%"},
+      {species:"Succinate-TBA",role:"Product (org)",coeff:"1 mol",note:"Mono or di complex"},
+    ],
+    equation:"HOOC(CH\u2082)\u2082COOH\u208Aaq\u208B + n\u00B7TBA\u208Aorg\u208B \u21CC [Suc\u207F\u207B\u00B7nTBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Dicarboxylic acid two-step extraction equilibrium",
+    mechanism:"Succinic acid (diprotic, pKa1=4.21) extracts as both mono- and di-TBA complex depending on TBA/acid ratio. The two carboxyl groups on a flexible C2 linker can both coordinate to TBA, doubling the theoretical loading. DES solvation of the four-carbon chain is favoured by Menthol's methyl groups providing hydrophobic pockets. Extraction efficiency increases markedly above 10 wt% TBA.",
+    props:[
+      {k:"Molar Mass",v:"118.09 g/mol"},{k:"pKa1",v:"4.21"},{k:"pKa2",v:"5.64"},{k:"Melting Point",v:"185 \u00B0C"},
+      {k:"Density",v:"1.572 g/mL"},{k:"Water Solubility",v:"5.8 g/100mL"},{k:"logP",v:"-0.59"},
+    ]
+  },
+  {
+    id:"formic", name:"Formic Acid", formula:"HCOOH", mw:46.03,
+    pka:3.75, bp:100.8, mp:8.4, density:1.220, solubility:"Miscible",
+    color:"#f87171",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="40" y="55" font-size="13" fill="#94a3b8" font-family="monospace">H</text>
+      <line x1="54" y1="50" x2="82" y2="50" stroke="#f87171" stroke-width="2"/>
+      <text x="84" y="55" font-size="12" fill="#f87171" font-family="monospace">C</text>
+      <line x1="93" y1="47" x2="93" y2="28" stroke="#f87171" stroke-width="2"/>
+      <line x1="96" y1="47" x2="96" y2="28" stroke="#f87171" stroke-width="2"/>
+      <text x="86" y="24" font-size="11" fill="#f87171" font-family="monospace">O</text>
+      <line x1="100" y1="52" x2="124" y2="68" stroke="#60a5fa" stroke-width="2"/>
+      <text x="126" y="73" font-size="11" fill="#60a5fa" font-family="monospace">OH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Formate-TBA Pair",formula:"[HCOO\u207B][TBAH\u207A]",role:"Small, highly polar; lower KD than larger carboxylates."},
+      {name:"Formic-DES Complex",formula:"HCOOH\u00B7Thymol",role:"Strong H-bond to Thymol phenol; compensates for small size."},
+    ],
+    stoichiometry:[
+      {species:"Formic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"C1, smallest carboxylic acid"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1 mol",note:"5-20 wt%"},
+      {species:"Formate-TBA",role:"Product (org)",coeff:"1 mol",note:"Ion pair"},
+    ],
+    equation:"HCOOH\u208Aaq\u208B + TBA\u208Aorg\u208B \u21CC [HCOO\u207B\u00B7TBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Formic acid extraction equilibrium",
+    mechanism:"Formic acid (pKa 3.75, strongest common carboxylic acid) readily donates proton to TBA. However the formate ion is small and polar, making it less stable in the organic phase than larger carboxylates. Thymol in DES partially compensates via strong phenol-formate H-bond. Overall KD is moderate; TBA loading above 15 wt% is recommended for efficient extraction.",
+    props:[
+      {k:"Molar Mass",v:"46.03 g/mol"},{k:"pKa",v:"3.75"},{k:"Boiling Point",v:"100.8 \u00B0C"},
+      {k:"Melting Point",v:"8.4 \u00B0C"},{k:"Density",v:"1.220 g/mL"},{k:"Water Solubility",v:"Miscible"},
+      {k:"Dipole Moment",v:"1.41 D"},{k:"logP",v:"-0.54"},
+    ]
+  },
+  {
+    id:"pyruvic", name:"Pyruvic Acid", formula:"CH\u2083COCOOH", mw:88.06,
+    pka:2.49, bp:165, mp:11.8, density:1.267, solubility:"Miscible",
+    color:"#818cf8",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="5" y="55" font-size="10" fill="#94a3b8" font-family="monospace">CH\u2083</text>
+      <line x1="37" y1="50" x2="65" y2="50" stroke="#818cf8" stroke-width="2"/>
+      <text x="67" y="55" font-size="10" fill="#818cf8" font-family="monospace">C</text>
+      <line x1="76" y1="46" x2="76" y2="28" stroke="#f87171" stroke-width="2"/>
+      <line x1="79" y1="46" x2="79" y2="28" stroke="#f87171" stroke-width="2"/>
+      <text x="70" y="24" font-size="10" fill="#f87171" font-family="monospace">O</text>
+      <line x1="84" y1="50" x2="115" y2="50" stroke="#818cf8" stroke-width="2"/>
+      <text x="117" y="55" font-size="10" fill="#818cf8" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Pyruvate-TBA Pair",formula:"[CH\u2083COCOO\u207B][TBAH\u207A]",role:"Ketone group provides additional polarisability; very strong extraction."},
+      {name:"Keto-Enol Tautomer",formula:"CH\u2082=C(OH)COOH",role:"Enol form (minor) has different H-bond geometry with DES."},
+      {name:"Pyruvate Hydrate",formula:"CH\u2083C(OH)\u2082COOH",role:"Gem-diol hydrate reduces effective acid concentration in aqueous."},
+    ],
+    stoichiometry:[
+      {species:"Pyruvic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"Alpha-keto acid, pKa 2.49"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1 mol",note:"5-20 wt%"},
+      {species:"Pyruvate-TBA",role:"Product (org)",coeff:"1 mol",note:"Ketone-amine complex"},
+    ],
+    equation:"CH\u2083COCOOH\u208Aaq\u208B + TBA\u208Aorg\u208B \u21CC [CH\u2083COCOO\u207B\u00B7TBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Alpha-keto acid reactive extraction",
+    mechanism:"Pyruvic acid (pKa 2.49) is the strongest acid in this study. Nearly complete ionisation at experimental pH ensures maximum proton transfer to TBA. The adjacent ketone carbonyl can weakly coordinate to the TBA ammonium proton, forming a bidentate-like interaction unique among the monocarboxylic acids. High loading ratios Z are observed even at low TBA concentrations.",
+    props:[
+      {k:"Molar Mass",v:"88.06 g/mol"},{k:"pKa",v:"2.49"},{k:"Boiling Point",v:"165 \u00B0C"},
+      {k:"Melting Point",v:"11.8 \u00B0C"},{k:"Density",v:"1.267 g/mL"},{k:"Water Solubility",v:"Miscible"},
+      {k:"Dipole Moment",v:"2.08 D"},{k:"logP",v:"-0.86"},
+    ]
+  },
+  {
+    id:"maleic", name:"Maleic Acid", formula:"cis-HOOCCH=CHCOOH", mw:116.07,
+    pka:1.92, bp:"decomp.", mp:130, density:1.590, solubility:"44.1 g/100mL",
+    color:"#f97316",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="2" y="45" font-size="9" fill="#f97316" font-family="monospace">HOOC</text>
+      <line x1="42" y1="40" x2="72" y2="40" stroke="#f97316" stroke-width="2"/>
+      <line x1="42" y1="44" x2="72" y2="44" stroke="#f97316" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="74" y="45" font-size="9" fill="#94a3b8" font-family="monospace">CH</text>
+      <line x1="90" y1="40" x2="120" y2="60" stroke="#f97316" stroke-width="2"/>
+      <line x1="93" y1="38" x2="123" y2="58" stroke="#f97316" stroke-width="1"/>
+      <text x="122" y="65" font-size="9" fill="#94a3b8" font-family="monospace">CH</text>
+      <line x1="140" y1="60" x2="168" y2="60" stroke="#f97316" stroke-width="2"/>
+      <text x="170" y="65" font-size="9" fill="#f97316" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Maleate Mono-TBA",formula:"[cis-OOCCH=CHCOOH][TBAH\u207A]",role:"First deprotonation (pKa1=1.92); dominant at high TBA loadings."},
+      {name:"Maleate Di-TBA",formula:"[cis-OOCCH=CHCOO][TBAH\u207A]\u2082",role:"Full neutralisation at elevated TBA:acid ratios."},
+      {name:"Maleate-Thymol Pi Complex",formula:"Mal\u00B7Thymol",role:"Aromatic pi system of thymol weakly pi-stacks with C=C of maleate."},
+    ],
+    stoichiometry:[
+      {species:"Maleic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"Diprotic, cis configuration, pKa1=1.92"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1-2 mol",note:"5-20 wt%"},
+      {species:"Maleate-TBA",role:"Product (org)",coeff:"1 mol",note:"Mono or di complex"},
+    ],
+    equation:"HOOCCH=CHCOOH\u208Aaq\u208B + n\u00B7TBA\u208Aorg\u208B \u21CC [Mal\u207F\u207B\u00B7nTBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Unsaturated dicarboxylic acid two-step extraction",
+    mechanism:"Maleic acid (pKa1=1.92, very strong) undergoes nearly complete first deprotonation at experimental conditions. The cis double bond locks both carboxylate groups on the same side, enabling simultaneous chelation with two TBA molecules. Thymol's aromatic ring provides additional pi-stacking stabilisation unique to unsaturated acids. This results in very high extraction efficiency at modest TBA loadings.",
+    props:[
+      {k:"Molar Mass",v:"116.07 g/mol"},{k:"pKa1",v:"1.92"},{k:"pKa2",v:"6.23"},{k:"Melting Point",v:"130 \u00B0C"},
+      {k:"Density",v:"1.590 g/mL"},{k:"Water Solubility",v:"44.1 g/100mL"},{k:"logP",v:"-0.48"},
+    ]
+  },
+  {
+    id:"oxalic", name:"Oxalic Acid", formula:"HOOCCOOH", mw:90.03,
+    pka:1.25, bp:"decomp.", mp:189, density:1.900, solubility:"9 g/100mL",
+    color:"#a3e635",
+    svg:`<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <text x="20" y="55" font-size="10" fill="#a3e635" font-family="monospace">HOOC</text>
+      <line x1="62" y1="50" x2="98" y2="50" stroke="#a3e635" stroke-width="2"/>
+      <line x1="62" y1="53" x2="98" y2="53" stroke="#a3e635" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="100" y="55" font-size="10" fill="#a3e635" font-family="monospace">COOH</text>
+    </svg>`,
+    intermediates:[
+      {name:"Oxalate Mono-TBA",formula:"[HOOCCOO\u207B][TBAH\u207A]",role:"First step complex; free COOH remains H-bond donor."},
+      {name:"Oxalate Di-TBA",formula:"[\u207BOOCCOO\u207B][TBAH\u207A]\u2082",role:"Full salt formation; high ionic character, low organic-phase stability."},
+      {name:"TBA-Oxalate Crystal",formula:"(TBAH)\u2082C\u2082O\u2084",role:"Risk of precipitate formation at high concentration; monitor carefully."},
+    ],
+    stoichiometry:[
+      {species:"Oxalic Acid (aq)",role:"Reactant",coeff:"1 mol",note:"Strongest dicarboxylic acid, pKa1=1.25"},
+      {species:"TBA (org)",role:"Extractant",coeff:"1-2 mol",note:"5-20 wt%"},
+      {species:"Oxalate-TBA",role:"Product (org)",coeff:"1 mol",note:"Salt complex, risk of solid"},
+    ],
+    equation:"HOOCCOOH\u208Aaq\u208B + n\u00B7TBA\u208Aorg\u208B \u21CC [(HOOC)\u2082\u208B\u207F COO\u207F\u207B\u00B7nTBAH\u207A]\u208Aorg\u208B",
+    equationDesc:"Oxalic acid reactive extraction (precipitation risk)",
+    mechanism:"Oxalic acid (pKa1=1.25, pKa2=4.27) is the most acidic compound studied. Near-complete first ionisation occurs at all experimental pH values. However the dianion is highly polar and small, making it difficult to solvate in the organic phase. DES viscosity and Thymol polar head group are critical for stabilising the oxalate di-TBA salt. At high TBA and low Cin, precipitation risk should be monitored.",
+    props:[
+      {k:"Molar Mass",v:"90.03 g/mol"},{k:"pKa1",v:"1.25"},{k:"pKa2",v:"4.27"},{k:"Melting Point",v:"189 \u00B0C"},
+      {k:"Density",v:"1.900 g/mL"},{k:"Water Solubility",v:"9 g/100mL"},{k:"logP",v:"-1.72"},
+    ]
+  }
+];
+
+const MODEL_COLORS = {RSM:"#fbbf24",RandomForest:"#34d399",XGBoost:"#60a5fa",GPR:"#22d3ee",ANN:"#a78bfa"};
+const TARGETS_META = {
+  KD:{label:"Distribution Coeff.",unit:"",color:"#22d3ee",fmt:v=>v.toFixed(3)},
+  E_pct:{label:"Extraction Efficiency",unit:"%",color:"#34d399",fmt:v=>v.toFixed(2)},
+  Z:{label:"Loading Ratio",unit:"mol/mol",color:"#a78bfa",fmt:v=>v.toFixed(4)},
+  SF_min:{label:"Min Solvent/Feed",unit:"",color:"#fbbf24",fmt:v=>v.toFixed(4)},
+};
+
+// ── Utility ──────────────────────────────────────────────────────────────────
+function useChart(ref, config, deps){
+  useEffect(()=>{
+    if(!ref.current)return;
+    const ctx=ref.current.getContext('2d');
+    const existing=Chart.getChart(ctx);
+    if(existing)existing.destroy();
+    new Chart(ctx, config);
+    return ()=>{const c=Chart.getChart(ctx);if(c)c.destroy();};
+  }, deps);
+}
+
+function heatColor(val, min, max){
+  if(val==null)return '#162440';
+  const t=(val-min)/(max-min||1);
+  const r=Math.round(7+t*21), g=Math.round(17+t*30), b=Math.round(31+t*20);
+  const g2=Math.round(52*t), b2=Math.round(238*t), r2=Math.round(34*t);
+  return `rgb(${r+r2},${g+g2},${b+b2})`;
+}
+
+// ── Components ───────────────────────────────────────────────────────────────
+function R2Bars({metrics}){
+  if(!metrics||!metrics.length)return null;
+  const modelOrder=['RSM','RandomForest','XGBoost','GPR','ANN'];
+  const targetOrder=['KD','E_pct','Z','SF_min'];
+  const data={};
+  metrics.forEach(r=>{modelOrder.forEach(m=>{if(!data[m])data[m]={};targetOrder.forEach(t=>{if(r.target===t&&r.model===m)data[m][t]=r.r2;});});});
+  return (
+    <div>
+      {modelOrder.map(m=>{
+        const avg=targetOrder.reduce((s,t)=>s+(data[m]?.[t]||0),0)/targetOrder.length;
+        const pct=Math.round(avg*100);
+        const col=MODEL_COLORS[m]||'#22d3ee';
+        return (
+          <div key={m} className="r2-bar-row">
+            <span className="r2-bar-label">{m}</span>
+            <div className="r2-bar-track">
+              <div className="r2-bar-fill" style={{width:`${pct}%`,background:`linear-gradient(90deg,${col}cc,${col})`}}>
+                <span>R²={avg.toFixed(3)}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PredResult({preds, inRange}){
+  if(!preds)return null;
+  const targets=['KD','E_pct','Z','SF_min'];
+  const cls={KD:'kd',E_pct:'epct',Z:'z',SF_min:'sf'};
+  return (
+    <div>
+      {!inRange && <div className="status-bar" style={{marginBottom:12,borderColor:'#fbbf2444'}}>
+        <span style={{color:'#fbbf24'}}>⚠</span>
+        <span style={{color:'#fbbf24'}}>Input outside training range — extrapolation mode</span>
+      </div>}
+      <div className="pred-grid">
+        {targets.map(t=>{
+          const tm=TARGETS_META[t];
+          const vals=preds[t]||{};
+          const gpv=vals.GPR;
+          return (
+            <div key={t} className={`pred-card ${cls[t]}`}>
+              <div className="pred-label">{tm.unit||'ratio'}</div>
+              <div className="pred-name">{tm.label}</div>
+              {Object.entries(vals).filter(([k])=>!k.endsWith('_std')).map(([model,val])=>(
+                <div key={model} className="model-row">
+                  <span className="model-tag" style={{color:MODEL_COLORS[model]}}>{model}</span>
+                  <span className="model-val" style={{color:MODEL_COLORS[model]}}>{typeof val==='number'?val.toFixed(4):'-'}</span>
+                </div>
+              ))}
+              {vals.GPR_std!=null && <div style={{fontSize:'0.6rem',color:'var(--muted)',marginTop:4}}>GPR σ = ±{vals.GPR_std.toFixed(4)}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BarChartCard({title, data, color, target}){
+  const ref=useRef();
+  const models=Object.keys(MODEL_COLORS);
+  const vals=models.map(m=>data?.[target]?.[m]??null);
+  useChart(ref,{
+    type:'bar',
+    data:{labels:models,datasets:[{data:vals,backgroundColor:models.map(m=>MODEL_COLORS[m]+'cc'),borderColor:models.map(m=>MODEL_COLORS[m]),borderWidth:2,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label||''} ${c.raw?.toFixed(4)||'N/A'}`}}},scales:{y:{grid:{color:'#1a335620'},ticks:{color:'#64748b',font:{size:10}}},x:{grid:{display:false},ticks:{color:'#64748b',font:{size:10}}}}}
+  },[data,target]);
+  return (
+    <div className="card">
+      <div className="card-title">📊 {title}</div>
+      <div className="chart-wrap-sm"><canvas ref={ref}/></div>
+    </div>
+  );
+}
+
+function SensitivityTab(){
+  const [xvar,setXvar]=useState('TBA_pct');
+  const [target,setTarget]=useState('KD');
+  const [Cin,setCin]=useState(0.10);
+  const [TBA,setTBA]=useState(10);
+  const [DES,setDES]=useState(1.5);
+  const [steps,setSteps]=useState(12);
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const ref=useRef();
+
+  async function load(){
+    setLoading(true);
+    try{
+      const r=await fetch(`${API}/sensitivity?xvar=${xvar}&target=${target}&steps=${steps}&Cin=${Cin}&TBA_pct=${TBA}&DES_ratio_num=${DES}`);
+      setData(await r.json());
+    }catch{}
+    setLoading(false);
+  }
+  useEffect(()=>{load();},[xvar,target,Cin,TBA,DES,steps]);
+
+  useChart(ref,{
+    type:'line',
+    data:{
+      labels:data?.map(r=>r[xvar])||[],
+      datasets:Object.keys(MODEL_COLORS).filter(m=>data?.[0]?.[m]!=null).map(m=>({
+        label:m,data:data?.map(r=>r[m]),borderColor:MODEL_COLORS[m],backgroundColor:MODEL_COLORS[m]+'22',
+        borderWidth:2,pointRadius:3,tension:0.3,fill:false
+      }))
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}},scales:{x:{title:{display:true,text:xvar,color:'#64748b'},grid:{color:'#1a335620'},ticks:{color:'#64748b',font:{size:9}}},y:{title:{display:true,text:target,color:'#64748b'},grid:{color:'#1a335620'},ticks:{color:'#64748b',font:{size:9}}}}}
+  },[data]);
+
+  const varOpts=[{v:'Cin',l:'Initial Conc. (Cin)'},{v:'TBA_pct',l:'TBA wt%'},{v:'DES_ratio_num',l:'DES Ratio'}];
+  return (
+    <div>
+      <div className="card accent-top">
+        <div className="card-title">🔬 Sensitivity Analysis</div>
+        <div className="sens-controls">
+          <div><label>X Variable</label>
+            <select value={xvar} onChange={e=>{setXvar(e.target.value);}}>{varOpts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
+          </div>
+          <div><label>Target</label>
+            <select value={target} onChange={e=>setTarget(e.target.value)}>{Object.entries(TARGETS_META).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+          </div>
+          <div><label>Steps</label>
+            <select value={steps} onChange={e=>setSteps(+e.target.value)}>{[8,10,12,15,20].map(s=><option key={s} value={s}>{s}</option>)}</select>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:12}}>
+          {xvar!=='Cin'&&<div style={{flex:1,minWidth:120}}><label>Fixed Cin (N)</label><input type="range" min="0.01" max="1" step="0.01" value={Cin} onChange={e=>setCin(+e.target.value)}/><div className="slider-row"><span>0.01</span><span style={{color:'var(--accent)'}}>{Cin}N</span><span>1.0</span></div></div>}
+          {xvar!=='TBA_pct'&&<div style={{flex:1,minWidth:120}}><label>Fixed TBA (%)</label><input type="range" min="1" max="100" step="1" value={TBA} onChange={e=>setTBA(+e.target.value)}/><div className="slider-row"><span>1</span><span style={{color:'var(--accent)'}}>{TBA}%</span><span>100</span></div></div>}
+          {xvar!=='DES_ratio_num'&&<div style={{flex:1,minWidth:120}}><label>Fixed DES Ratio</label><select value={DES} onChange={e=>setDES(+e.target.value)}><option value={1.0}>1:1 (1.0)</option><option value={1.5}>1:1.5 (1.5)</option><option value={2.0}>2:1 (2.0)</option></select></div>}
+        </div>
+        {loading?<div className="status-bar"><div className="spinner"/><span>Computing...</span></div>:
+          <div className="chart-wrap-lg"><canvas ref={ref}/></div>}
+      </div>
+    </div>
+  );
+}
+
+function MatrixTab(){
+  const [target,setTarget]=useState('KD');
+  const [model,setModel]=useState('GPR');
+  const [xvar,setXvar]=useState('TBA_pct');
+  const [yvar,setYvar]=useState('Cin');
+  const [DES,setDES]=useState(1.5);
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(false);
+
+  const varOpts=[{v:'Cin',l:'Cin'},{v:'TBA_pct',l:'TBA%'},{v:'DES_ratio_num',l:'DES Ratio'}];
+
+  async function load(){
+    if(xvar===yvar)return;
+    setLoading(true);
+    try{
+      const r=await fetch(`${API}/matrix?target=${target}&model=${model}&xvar=${xvar}&yvar=${yvar}&steps=8&DES_ratio_num=${DES}`);
+      setData(await r.json());
+    }catch{}
+    setLoading(false);
+  }
+  useEffect(()=>{load();},[target,model,xvar,yvar,DES]);
+
+  const allVals=data?.z_grid?.flat().filter(v=>v!=null)||[];
+  const mn=Math.min(...allVals), mx=Math.max(...allVals);
+
+  return (
+    <div>
+      <div className="card accent-top">
+        <div className="card-title">🗺️ 2D Response Matrix</div>
+        <div className="sens-controls" style={{flexWrap:'wrap'}}>
+          <div><label>Target</label><select value={target} onChange={e=>setTarget(e.target.value)}>{Object.entries(TARGETS_META).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></div>
+          <div><label>Model</label><select value={model} onChange={e=>setModel(e.target.value)}>{Object.keys(MODEL_COLORS).map(m=><option key={m} value={m}>{m}</option>)}</select></div>
+          <div><label>X Axis</label><select value={xvar} onChange={e=>setXvar(e.target.value)}>{varOpts.filter(o=>o.v!==yvar).map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+          <div><label>Y Axis</label><select value={yvar} onChange={e=>setYvar(e.target.value)}>{varOpts.filter(o=>o.v!==xvar).map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+          {xvar!=='DES_ratio_num'&&yvar!=='DES_ratio_num'&&<div><label>Fixed DES</label><select value={DES} onChange={e=>setDES(+e.target.value)}><option value={1.0}>1:1</option><option value={1.5}>1:1.5</option><option value={2.0}>2:1</option></select></div>}
+        </div>
+        {loading?<div className="status-bar"><div className="spinner"/><span>Computing grid...</span></div>:data&&!data.error?(
+          <div className="heat-wrap">
+            <table className="heat-table">
+              <thead><tr>
+                <th>{data.yvar} \ {data.xvar}</th>
+                {data.x_vals?.map(x=><th key={x}>{x}</th>)}
+              </tr></thead>
+              <tbody>
+                {data.z_grid?.map((row,i)=>(
+                  <tr key={i}>
+                    <th>{data.y_vals?.[i]}</th>
+                    {row.map((v,j)=>(
+                      <td key={j} style={{background:heatColor(v,mn,mx),color:v>((mn+mx)/2)?'#07111f':'#f1f5f9'}}>
+                        {v!=null?v.toFixed(3):'-'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ):<div style={{color:'var(--muted)',fontSize:'0.78rem'}}>Select different X and Y variables to view matrix.</div>}
+      </div>
+    </div>
+  );
+}
+
+function IsothermTab(){
+  const [TBA,setTBA]=useState(10);
+  const [DES,setDES]=useState(1.5);
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const ref=useRef();
+
+  async function load(){
+    setLoading(true);
+    try{
+      const r=await fetch(`${API}/isotherms?TBA_pct=${TBA}&DES_ratio_num=${DES}&n_points=18`);
+      setData(await r.json());
+    }catch{}
+    setLoading(false);
+  }
+  useEffect(()=>{load();},[TBA,DES]);
+
+  const datasets=[];
+  if(data){
+    datasets.push({label:'Data (GPR)',data:data.Ce?.map((c,i)=>({x:c,y:data.q?.[i]})),type:'scatter',backgroundColor:'#22d3ee',borderColor:'#22d3ee',pointRadius:5,order:1});
+    if(data.Langmuir_curve?.length) datasets.push({label:`Langmuir (R²=${data.Langmuir_params?.R2?.toFixed(3)||'?'})`,data:data.Ce_smooth?.map((c,i)=>({x:c,y:data.Langmuir_curve[i]})),type:'line',borderColor:'#34d399',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.3,order:2});
+    if(data.Freundlich_curve?.length) datasets.push({label:`Freundlich (R²=${data.Freundlich_params?.R2?.toFixed(3)||'?'})`,data:data.Ce_smooth?.map((c,i)=>({x:c,y:data.Freundlich_curve[i]})),type:'line',borderColor:'#f472b6',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.3,order:3});
+  }
+
+  useChart(ref,{
+    type:'scatter',
+    data:{datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}},scales:{x:{title:{display:true,text:'Ce (N) - Equilibrium Conc.',color:'#64748b'},grid:{color:'#1a335620'},ticks:{color:'#64748b'}},y:{title:{display:true,text:'q (mol/mol) - Loading Ratio Z',color:'#64748b'},grid:{color:'#1a335620'},ticks:{color:'#64748b'}}}}
+  },[data]);
+
+  return (
+    <div>
+      <div className="card accent-top">
+        <div className="card-title">📈 Adsorption Isotherms</div>
+        <div className="sens-controls">
+          <div><label>TBA wt%</label><select value={TBA} onChange={e=>setTBA(+e.target.value)}>{[5,10,15,20].map(v=><option key={v} value={v}>{v}%</option>)}</select></div>
+          <div><label>DES Ratio</label><select value={DES} onChange={e=>setDES(+e.target.value)}><option value={1.0}>1:1 (1.0)</option><option value={1.5}>1:1.5 (1.5)</option><option value={2.0}>2:1 (2.0)</option></select></div>
+        </div>
+        {loading?<div className="status-bar"><div className="spinner"/><span>Fitting isotherms...</span></div>:
+          <div className="chart-wrap-lg"><canvas ref={ref}/></div>}
+        {data&&<div className="iso-params">
+          <div className="iso-param-card">
+            <div className="iso-param-title">Langmuir</div>
+            <div className="iso-param-row"><span>Qmax</span><span>{data.Langmuir_params?.Qmax?.toFixed(4)||'N/A'}</span></div>
+            <div className="iso-param-row"><span>b</span><span>{data.Langmuir_params?.b?.toFixed(4)||'N/A'}</span></div>
+            <div className="iso-param-row"><span>R²</span><span>{data.Langmuir_params?.R2?.toFixed(4)||'N/A'}</span></div>
+          </div>
+          <div className="iso-param-card">
+            <div className="iso-param-title">Freundlich</div>
+            <div className="iso-param-row"><span>Kf</span><span>{data.Freundlich_params?.Kf?.toFixed(4)||'N/A'}</span></div>
+            <div className="iso-param-row"><span>n</span><span>{data.Freundlich_params?.n?.toFixed(4)||'N/A'}</span></div>
+            <div className="iso-param-row"><span>R²</span><span>{data.Freundlich_params?.R2?.toFixed(4)||'N/A'}</span></div>
+          </div>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+function MetricsTab({metrics}){
+  const ref=useRef();
+  const targets=['KD','E_pct','Z','SF_min'];
+  const models=Object.keys(MODEL_COLORS);
+  const matrix={};
+  metrics.forEach(r=>{if(!matrix[r.model])matrix[r.model]={};matrix[r.model][r.target]=r.r2;});
+
+  useChart(ref,{
+    type:'radar',
+    data:{
+      labels:targets,
+      datasets:models.map(m=>({
+        label:m,data:targets.map(t=>matrix[m]?.[t]||0),
+        borderColor:MODEL_COLORS[m],backgroundColor:MODEL_COLORS[m]+'22',borderWidth:2,pointRadius:3
+      }))
+    },
+    options:{responsive:true,maintainAspectRatio:false,scales:{r:{grid:{color:'#1a335630'},pointLabels:{color:'#94a3b8',font:{size:10}},ticks:{color:'#64748b',backdropColor:'transparent',font:{size:8}},min:0.9,max:1}},plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}}}
+  },[metrics]);
+
+  return (
+    <div>
+      <div className="grid2">
+        <div className="card accent-top">
+          <div className="card-title">📡 Radar — R² per Target</div>
+          <div className="chart-wrap-lg"><canvas ref={ref}/></div>
+        </div>
+        <div className="card green-top">
+          <div className="card-title">📊 R² Performance Overview</div>
+          <R2Bars metrics={metrics}/>
+          <div style={{marginTop:16}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.68rem'}}>
+              <thead><tr style={{borderBottom:'1px solid var(--border)'}}><th style={{color:'var(--muted)',textAlign:'left',padding:'4px 6px'}}>Model</th>{targets.map(t=><th key={t} style={{color:TARGETS_META[t].color,textAlign:'center',padding:'4px 6px'}}>{t}</th>)}</tr></thead>
+              <tbody>{models.map(m=><tr key={m} style={{borderBottom:'1px solid var(--border)'}}><td style={{color:MODEL_COLORS[m],padding:'4px 6px',fontWeight:600}}>{m}</td>{targets.map(t=>{const v=matrix[m]?.[t];return <td key={t} style={{textAlign:'center',color:'var(--text)',padding:'4px 6px'}}>{v!=null?v.toFixed(4):'-'}</td>})}</tr>)}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChemistryTab(){
+  const [acid,setAcid]=useState(ACIDS[0]);
+  return (
+    <div>
+      <div className="acid-strip">
+        {ACIDS.map(a=>(
+          <button key={a.id} className={`acid-chip${acid.id===a.id?' active':''}`}
+            style={acid.id===a.id?{borderColor:a.color,color:a.color}:{}} onClick={()=>setAcid(a)}>
+            {a.name.split(' ')[0]}
+          </button>
+        ))}
+      </div>
+      <div className="chem-grid">
+        <div className="mol-box">
+          <div dangerouslySetInnerHTML={{__html:acid.svg}} style={{width:220,height:140}}/>
+          <div className="mol-name">{acid.name}</div>
+          <div className="mol-formula">{acid.formula}</div>
+          <div style={{width:'100%',marginTop:8}}>
+            <table className="prop-table">
+              {acid.props.map(p=><tr key={p.k}><td>{p.k}</td><td>{p.v}</td></tr>)}
+            </table>
+          </div>
+        </div>
+        <div>
+          <div className="card" style={{marginBottom:12,borderColor:acid.color+'55',borderTopColor:acid.color,borderTopWidth:2}}>
+            <div className="card-title">⚗️ Extraction Reaction</div>
+            <div className="eq-box">
+              <div className="eq-text">{acid.equation}</div>
+              <div className="eq-desc">{acid.equationDesc}</div>
+            </div>
+            <div className="flow-diagram">
+              <div className="flow-step"><div className="step-label">Aqueous Phase</div><div className="step-name">{acid.formula} + H₂O</div></div>
+              <div className="flow-arrow">→</div>
+              <div className="flow-step"><div className="step-label">Interface</div><div className="step-name">Proton Transfer</div></div>
+              <div className="flow-arrow">→</div>
+              <div className="flow-step"><div className="step-label">Organic Phase</div><div className="step-name">Ion Pair + DES</div></div>
+            </div>
+          </div>
+          <div className="card" style={{marginBottom:12}}>
+            <div className="card-title">🔗 Reaction Intermediates</div>
+            <div className="inter-grid">
+              {acid.intermediates.map((inter,i)=>(
+                <div key={i} className="inter-card">
+                  <div className="inter-name">{inter.name}</div>
+                  <div className="inter-formula">{inter.formula}</div>
+                  <div className="inter-role">{inter.role}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-title">⚖️ Stoichiometry</div>
+        <table className="stoich-table">
+          <thead><tr><th>Species</th><th>Role</th><th>Stoichiometry</th><th>Notes</th></tr></thead>
+          <tbody>{acid.stoichiometry.map((r,i)=><tr key={i}><td style={{color:'var(--text)',fontWeight:500}}>{r.species}</td><td style={{color:'var(--accent)'}}>{r.role}</td><td style={{color:'var(--green)',fontWeight:600}}>{r.coeff}</td><td style={{color:'var(--muted)'}}>{r.note}</td></tr>)}</tbody>
+        </table>
+        <div className="mech-text" style={{marginTop:12}}>{acid.mechanism}</div>
+      </div>
+    </div>
+  );
+}
+
+function BayesTab({suggestions}){
+  if(!suggestions||!suggestions.length) return <div className="card"><div style={{color:'var(--muted)',fontSize:'0.78rem'}}>No Bayesian suggestions available. Run the pipeline to generate optimal experiment suggestions.</div></div>;
+  return (
+    <div>
+      <div className="card accent-top">
+        <div className="card-title">🎯 Bayesian Optimisation — Next Experiments</div>
+        <p style={{fontSize:'0.72rem',color:'var(--muted)',marginBottom:14}}>GPR Gaussian Process upper-confidence-bound (UCB, κ=2.576) acquisition suggests these new experimental conditions to maximise KD:</p>
+        {suggestions.slice(0,5).map((s,i)=>(
+          <div key={i} className="next-card">
+            <div className="next-rank">Suggestion #{i+1} — Score: {s.target?.toFixed(4)||s.score?.toFixed(4)||'?'}</div>
+            <div className="next-vals">
+              <div className="next-val"><span>Cin:</span><span>{s.Cin?.toFixed(3)||'?'} N</span></div>
+              <div className="next-val"><span>TBA:</span><span>{s.TBA_pct?.toFixed(1)||'?'}%</span></div>
+              <div className="next-val"><span>DES:</span><span>{s.DES_ratio_num?.toFixed(2)||'?'}</span></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN APP ─────────────────────────────────────────────────────────────────
+function App(){
+  const [Cin,setCin]=useState(0.10);
+  const [TBA,setTBA]=useState(10);
+  const [DES,setDES]=useState(1.5);
+  const [customDES,setCustomDES]=useState('');
+  const [desMode,setDesMode]=useState('preset');
+  const [enabledModels,setEnabledModels]=useState({RSM:true,RandomForest:true,XGBoost:true,GPR:true,ANN:true});
+  const [preds,setPreds]=useState(null);
+  const [nrtl,setNrtl]=useState(null);
+  const [inRange,setInRange]=useState(true);
+  const [metrics,setMetrics]=useState([]);
+  const [suggestions,setSuggestions]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [activeTab,setActiveTab]=useState('predict');
+  const [apiStatus,setApiStatus]=useState('checking');
+
+  // TBA normality conversion
+  const TBA_MW=185.35, TBA_DENSITY=0.92;
+  const tbaNormality=(TBA/100*TBA_DENSITY*1000/TBA_MW).toFixed(3);
+
+  const desVal=desMode==='custom'?(+customDES||1.5):DES;
+
+  useEffect(()=>{
+    fetch(`${API}/health`).then(r=>r.ok?setApiStatus('online'):setApiStatus('offline')).catch(()=>setApiStatus('offline'));
+    fetch(`${API}/metrics`).then(r=>r.json()).then(setMetrics).catch(()=>{});
+    fetch(`${API}/suggestions`).then(r=>r.json()).then(setSuggestions).catch(()=>{});
+  },[]);
+
+  async function predict(){
+    setLoading(true);
+    try{
+      const res=await fetch(`${API}/predict`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Cin,TBA_pct:TBA,DES_ratio_num:desVal})});
+      const d=await res.json();
+      setPreds(d.predictions);setNrtl(d.nrtl);setInRange(d.in_range);
+    }catch(e){alert('API offline — start uvicorn api:app --reload --port 8000');}
+    setLoading(false);
+  }
+
+  const tabs=[
+    {id:'predict',label:'🔮 Predict'},
+    {id:'sensitivity',label:'📉 Sensitivity'},
+    {id:'matrix',label:'🗺️ Matrix'},
+    {id:'isotherms',label:'📈 Isotherms'},
+    {id:'chemistry',label:'⚗️ Chemistry'},
+    {id:'metrics',label:'📊 Metrics'},
+    {id:'bayes',label:'🎯 Bayesian'},
+  ];
+
+  return (
+    <div className="app">
+      <div className="header">
+        <div className="header-icon">⚗</div>
+        <div>
+          <h1>Reactive Extraction Optimizer</h1>
+          <p>Propionic Acid · TBA/DES · ML/DL Ensemble Predictor — v2.0</p>
+        </div>
+        <div className="header-badge" style={{color:apiStatus==='online'?'var(--green)':apiStatus==='offline'?'var(--danger)':'var(--warn)',borderColor:apiStatus==='online'?'var(--green)':apiStatus==='offline'?'var(--danger)':'var(--warn)'}}>
+          {apiStatus==='checking'?'🔄 Checking':apiStatus==='online'?'🟢 API Online':'🔴 API Offline'}
+        </div>
+      </div>
+      <div className="main">
+        {/* SIDEBAR */}
+        <div className="sidebar">
+          <div>
+            <div className="section-title">Input Parameters</div>
+            <div style={{marginBottom:10}}>
+              <label>Initial Acid Conc. Cin (N)</label>
+              <input type="range" min="0.01" max="1.0" step="0.01" value={Cin} onChange={e=>setCin(+e.target.value)}/>
+              <div className="slider-row"><span>0.01 N</span><span style={{color:'var(--accent)',fontWeight:700}}>{Cin.toFixed(2)} N</span><span>1.0 N</span></div>
+            </div>
+            <div style={{marginBottom:10}}>
+              <label>TBA Concentration (wt%)</label>
+              <input type="range" min="1" max="100" step="1" value={TBA} onChange={e=>setTBA(+e.target.value)}/>
+              <div className="slider-row"><span>1%</span><span style={{color:'var(--accent)',fontWeight:700}}>{TBA}%</span><span>100%</span></div>
+              <div style={{fontSize:'0.65rem',color:'var(--teal)',marginTop:2}}>≈ {tbaNormality} N (molar)</div>
+            </div>
+            <div style={{marginBottom:10}}>
+              <label>DES Ratio (Thymol:Menthol)</label>
+              <div style={{display:'flex',gap:6,marginBottom:6}}>
+                <button className="btn-sm" style={desMode==='preset'?{background:'rgba(34,211,238,0.15)'}:{}} onClick={()=>setDesMode('preset')}>Preset</button>
+                <button className="btn-sm" style={desMode==='custom'?{background:'rgba(34,211,238,0.15)'}:{}} onClick={()=>setDesMode('custom')}>Custom</button>
+              </div>
+              {desMode==='preset'?
+                <select value={DES} onChange={e=>setDES(+e.target.value)}>
+                  <option value={1.0}>1:1 → 1.0</option>
+                  <option value={1.5}>1:1.5 → 1.5</option>
+                  <option value={2.0}>2:1 → 2.0</option>
+                </select>:
+                <input type="number" min="0.5" max="3.0" step="0.1" value={customDES} placeholder="e.g. 1.75"
+                  onChange={e=>setCustomDES(e.target.value)}/>
+              }
+              <div style={{fontSize:'0.65rem',color:'var(--muted)',marginTop:3}}>Active: {desVal}</div>
+            </div>
+          </div>
+
+          <div>
+            <div className="section-title">Active Models</div>
+            {Object.keys(MODEL_COLORS).map(m=>(
+              <div key={m} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setEnabledModels(p=>({...p,[m]:!p[m]}))}>
+                <input type="checkbox" checked={enabledModels[m]} readOnly style={{accentColor:MODEL_COLORS[m]}}/>
+                <span style={{fontSize:'0.75rem',color:enabledModels[m]?MODEL_COLORS[m]:'var(--muted)'}}>{m}</span>
+              </div>
+            ))}
+          </div>
+
+          {nrtl&&<div>
+            <div className="section-title">NRTL Thermodynamics</div>
+            <div className="nrtl-box">
+              <div className="nrtl-row"><span>γ_aq</span><span>{nrtl.gamma_aq}</span></div>
+              <div className="nrtl-row"><span>γ_org</span><span>{nrtl.gamma_org}</span></div>
+              <div className="nrtl-row"><span>C_TBA (mol/L)</span><span>{nrtl.C_TBA_molar}</span></div>
+            </div>
+          </div>}
+
+          {metrics.length>0&&<div>
+            <div className="section-title">Model Performance</div>
+            <R2Bars metrics={metrics}/>
+          </div>}
+
+          <button className="btn" onClick={predict} disabled={loading}>
+            {loading?'⏳ Computing...':'🔮 Predict All Models'}
+          </button>
+        </div>
+
+        {/* CONTENT */}
+        <div className="content">
+          <div className="tabs">
+            {tabs.map(t=><div key={t.id} className={`tab${activeTab===t.id?' active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</div>)}
+          </div>
+
+          {activeTab==='predict'&&(
+            <div>
+              {!preds&&<div className="card" style={{textAlign:'center',padding:40}}>
+                <div style={{fontSize:2.5+'rem',marginBottom:12}}>⚗️</div>
+                <div style={{color:'var(--muted)',fontSize:'0.82rem'}}>Set parameters and click <strong style={{color:'var(--accent)'}}>Predict All Models</strong> to see predictions</div>
+                <div style={{fontSize:'0.7rem',color:'var(--muted2)',marginTop:8}}>5 models · 4 targets · NRTL thermodynamics</div>
+              </div>}
+              {preds&&<>
+                <PredResult preds={preds} inRange={inRange}/>
+                <div className="grid2">
+                  <BarChartCard title="KD — Distribution Coefficient" data={preds} target="KD"/>
+                  <BarChartCard title="E% — Extraction Efficiency" data={preds} target="E_pct"/>
+                  <BarChartCard title="Z — Loading Ratio" data={preds} target="Z"/>
+                  <BarChartCard title="SF_min — Min Solvent/Feed" data={preds} target="SF_min"/>
+                </div>
+              </>}
+            </div>
+          )}
+          {activeTab==='sensitivity'&&<SensitivityTab/>}
+          {activeTab==='matrix'&&<MatrixTab/>}
+          {activeTab==='isotherms'&&<IsothermTab/>}
+          {activeTab==='chemistry'&&<ChemistryTab/>}
+          {activeTab==='metrics'&&<MetricsTab metrics={metrics}/>}
+          {activeTab==='bayes'&&<BayesTab suggestions={suggestions}/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
