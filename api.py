@@ -36,48 +36,147 @@ app.add_middleware(
 
 # ── Load models once on startup ────────────────────────────────────────────────
 _models = {}
+_metrics_cache = []
 
-def load_all_models():
-    global _models
-    if _models:
-        return _models
+
+def train_models_in_memory():
+    """Train RF, XGBoost and GPR on synthetic data when no saved models exist."""
+    print("[API] No saved models found — training on synthetic data...")
+    from src.data_generator import generate_synthetic_dataset
+    from src.feature_engineering import add_polynomial_features, prepare_data
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import Matern, WhiteKernel
+    from sklearn.preprocessing import PolynomialFeatures
+    import xgboost as xgb
+    import statsmodels.api as sm
+
+    df = generate_synthetic_dataset(n_noise_runs=3)
+    df = add_polynomial_features(df)
+
+    trained = {}
+    metrics = []
+
     for target in TARGETS:
         t_models = {}
 
+        # ── Random Forest ──────────────────────────────────────────────────
+        (X_tr_s, X_te_s, y_tr_s, y_te_s,
+         X_tr, X_te, y_tr, y_te,
+         scX, scY, feats) = prepare_data(df, target, feature_set='full', scale=False)
+
+        rf = RandomForestRegressor(n_estimators=200, max_depth=7,
+                                   random_state=42, n_jobs=-1)
+        rf.fit(X_tr, y_tr)
+        t_models['RandomForest'] = rf
+        r2_rf = float(rf.score(X_te, y_te))
+        metrics.append({'model': 'RandomForest', 'target': target, 'r2': round(r2_rf, 4)})
+
+        # ── XGBoost ───────────────────────────────────────────────────────
+        xgb_m = xgb.XGBRegressor(n_estimators=200, max_depth=4,
+                                   learning_rate=0.05, subsample=0.8,
+                                   random_state=42, verbosity=0)
+        xgb_m.fit(X_tr, y_tr)
+        t_models['XGBoost'] = xgb_m
+        r2_xgb = float(xgb_m.score(X_te, y_te))
+        metrics.append({'model': 'XGBoost', 'target': target, 'r2': round(r2_xgb, 4)})
+
+        # ── GPR ───────────────────────────────────────────────────────────
+        (X_tr_s2, X_te_s2, y_tr_s2, y_te_s2,
+         _, _, _, _,
+         scX2, scY2, feats_base) = prepare_data(df, target, feature_set='base', scale=True)
+
+        kernel = Matern(nu=2.5) + WhiteKernel(noise_level=0.01)
+        gpr = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=3,
+                                        normalize_y=False, random_state=42)
+        gpr.fit(X_tr_s2, y_tr_s2)
+        r2_gpr = float(gpr.score(X_te_s2, y_te_s2))
+        t_models['GPR'] = {'model': gpr, 'scaler_X': scX2, 'scaler_y': scY2}
+        metrics.append({'model': 'GPR', 'target': target, 'r2': round(r2_gpr, 4)})
+
+        # ── RSM (statsmodels OLS with polynomial features) ─────────────────
+        try:
+            (_, _, _, _,
+             X_tr_b, X_te_b, y_tr_b, y_te_b,
+             _, _, feats_b) = prepare_data(df, target, feature_set='base', scale=False)
+
+            poly = PolynomialFeatures(degree=2, include_bias=False)
+            X_poly = poly.fit_transform(X_tr_b)
+            raw_names = poly.get_feature_names_out(feats_b).tolist()
+            clean, seen = [], {}
+            for n in raw_names:
+                s = n.replace(' ', '_').replace('^', 'pow')
+                if s in seen:
+                    seen[s] += 1; s = f"{s}_{seen[s]}"
+                else:
+                    seen[s] = 0
+                clean.append(s)
+            X_sm = pd.DataFrame(X_poly, columns=clean)
+            X_sm.insert(0, 'const', 1.0)
+            rsm = sm.OLS(y_tr_b, X_sm).fit()
+            t_models['RSM'] = rsm
+            # score on test
+            X_poly_te = poly.transform(X_te_b)
+            X_sm_te = pd.DataFrame(X_poly_te, columns=clean)
+            X_sm_te.insert(0, 'const', 1.0)
+            y_pred_rsm = rsm.predict(X_sm_te)
+            ss_res = np.sum((y_te_b - y_pred_rsm)**2)
+            ss_tot = np.sum((y_te_b - np.mean(y_te_b))**2)
+            r2_rsm = float(1 - ss_res / ss_tot) if ss_tot > 0 else 0.0
+            metrics.append({'model': 'RSM', 'target': target, 'r2': round(r2_rsm, 4)})
+        except Exception as e:
+            print(f"[API] RSM training failed for {target}: {e}")
+
+        trained[target] = t_models
+        print(f"[API] {target}: RF={r2_rf:.4f} XGB={r2_xgb:.4f} GPR={r2_gpr:.4f}")
+
+    return trained, metrics
+
+
+def load_all_models():
+    global _models, _metrics_cache
+    if _models:
+        return _models
+
+    # Try loading saved model files first
+    any_found = False
+    for target in TARGETS:
+        t_models = {}
         p = os.path.join(MODELS_DIR, f'rsm_{target}.pkl')
         if os.path.exists(p):
-            t_models['RSM'] = joblib.load(p)
-
+            t_models['RSM'] = joblib.load(p); any_found = True
         p = os.path.join(MODELS_DIR, f'rf_{target}.pkl')
         if os.path.exists(p):
-            t_models['RandomForest'] = joblib.load(p)
-
+            t_models['RandomForest'] = joblib.load(p); any_found = True
         p = os.path.join(MODELS_DIR, f'xgb_{target}.pkl')
         if os.path.exists(p):
-            t_models['XGBoost'] = joblib.load(p)
-
+            t_models['XGBoost'] = joblib.load(p); any_found = True
         p = os.path.join(MODELS_DIR, f'gpr_{target}.pkl')
         if os.path.exists(p):
-            t_models['GPR'] = joblib.load(p)
-
+            t_models['GPR'] = joblib.load(p); any_found = True
         for ext in ['.keras', '.h5']:
             p = os.path.join(MODELS_DIR, f'ann_{target}{ext}')
             if os.path.exists(p):
                 try:
                     from tensorflow import keras
                     t_models['ANN'] = keras.models.load_model(p)
+                    any_found = True
                 except Exception:
                     pass
                 break
-
         _models[target] = t_models
+
+    # If no saved models, train in memory on synthetic data
+    if not any_found:
+        _models, _metrics_cache = train_models_in_memory()
+
     return _models
 
 
 @app.on_event("startup")
 def startup_event():
     load_all_models()
-    print("[API] All models loaded.")
+    print("[API] Startup complete.")
 
 
 # ── Core prediction logic ──────────────────────────────────────────────────────
@@ -197,6 +296,9 @@ def get_metrics():
     if os.path.exists(p):
         df = pd.read_csv(p)
         return df.to_dict(orient='records')
+    # Fall back to in-memory metrics computed during startup training
+    if _metrics_cache:
+        return _metrics_cache
     return []
 
 
