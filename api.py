@@ -335,6 +335,11 @@ def get_isotherms(
     }
 
 
+@app.get("/")
+def root():
+    return {"message": "Reactive Extraction Predictor API v2.0", "status": "ok", "docs": "/docs"}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "models_loaded": list(_models.keys())}
