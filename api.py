@@ -174,9 +174,11 @@ def load_all_models():
 
 
 @app.on_event("startup")
-def startup_event():
-    load_all_models()
-    print("[API] Startup complete.")
+async def startup_event():
+    import threading
+    t = threading.Thread(target=load_all_models, daemon=True)
+    t.start()
+    print("[API] Startup complete — models loading in background.")
 
 
 # ── Core prediction logic ──────────────────────────────────────────────────────
