@@ -221,6 +221,11 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
   .sidebar{width:100%;min-width:unset;border-right:none;border-bottom:1px solid var(--border);}
   .grid2,.acc-grid{grid-template-columns:1fr;}
 }
+.chart-guide{background:rgba(34,211,238,.05);border-left:3px solid var(--accent);
+  border-radius:0 6px 6px 0;padding:10px 14px;margin-top:10px;
+  font-size:.71rem;color:var(--muted);line-height:1.7;}
+.chart-guide strong{color:var(--accent);}
+.chart-guide .guide-icon{font-size:.85rem;}
 </style>
 </head>
 <body>
@@ -378,6 +383,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
     <div class="card g-top">
       <div class="card-title"><span class="icon">📊</span> All Targets — Model Comparison</div>
       <div class="chart-wrap-lg" id="compare-chart"></div>
+      <div class="chart-guide">&#128214; <strong>How to read:</strong> Each group of bars = one output variable (KD, E%, Z, SF). Each colored bar = one ML model. Taller bar = higher predicted value. Compare bar heights to see which model gives the highest or most consistent prediction for your input.</div>
     </div>
 
   </div>
@@ -393,6 +399,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
       High R² = good fit. Low RMSE = low prediction error.
     </div>
     <button class="btn-sm" onclick="loadAccuracy()" style="margin-bottom:14px;">↻ Refresh Metrics</button>
+    <div class="chart-guide" style="margin-bottom:10px;">&#128214; <strong>How to read accuracy charts:</strong> R² (top chart): closer to 1.0 = better fit — the model explains more variance. RMSE (bottom chart): lower = smaller average prediction error. GPR typically gives highest R² for E% because it captures non-linear patterns. ANN needs more data to match GPR performance.</div>
     <div id="acc-loading" class="status-bar" style="display:none">
       <div class="spinner"></div><span>Loading metrics…</span>
     </div>
@@ -472,6 +479,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
       <button class="btn-sm" onclick="load3DSurface()">↻ Update</button>
     </div>
     <div id="surface3d-chart" style="height:480px;"></div>
+    <div class="chart-guide">&#128214; <strong>How to read the 3D surface:</strong> The X and Y axes are the two input variables you selected. The Z axis (height) = Extraction Efficiency E%. Higher peaks = better extraction. Rotate by clicking &amp; dragging. Bright green/teal = high efficiency (&gt;90%), dark blue = low efficiency. The peak region shows the optimum operating conditions.</div>
   </div>
 
   <!-- 2D heatmap from ML models -->
@@ -508,6 +516,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
       <button class="btn-sm" onclick="loadHeatmap()">↻ Generate</button>
     </div>
     <div id="heatmap-chart" style="height:420px;"></div>
+    <div class="chart-guide">&#128214; <strong>How to read the heatmap:</strong> Each cell = a predicted output value at that X/Y combination. Brighter yellow = higher value, darker purple = lower value. Look for the brightest region — that is the optimal operating zone. Use this to quickly find which combination of two variables gives the best result.</div>
   </div>
 </div>
 
@@ -532,6 +541,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
       <button class="btn-sm" onclick="loadSensitivity()">↻ Run</button>
     </div>
     <div id="sensitivity-chart" style="height:380px;"></div>
+    <div class="chart-guide">&#128214; <strong>How to read:</strong> The X axis sweeps one input variable across its full range while all others stay fixed. The Y axis shows the predicted output. Each line = one ML model. Steep rising lines = that variable strongly increases the output. Flat lines = variable has little effect. When all model lines agree → high confidence.</div>
   </div>
 </div>
 
@@ -612,6 +622,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
         </select></div>
     </div>
     <div id="rsm-contour-chart" style="height:420px;"></div>
+    <div class="chart-guide">&#128214; <strong>How to read the contour:</strong> Lines connect points of equal E%. Tightly packed lines = steep change (high sensitivity). Widely spaced = flat region. The top-right corner (high TOA + optimum HDES) typically shows the highest efficiency (dark yellow contour lines).</div>
   </div>
 </div>
 
@@ -633,6 +644,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
     </div>
     <div id="iso-params" class="iso-params"></div>
     <div id="iso-chart" style="height:380px;"></div>
+    <div class="chart-guide">&#128214; <strong>How to read:</strong> The cyan dots are GPR model predictions at different acid concentrations (Ce). The green line is the Langmuir isotherm fit (assumes finite adsorption sites). The dashed purple line is the Freundlich fit (assumes heterogeneous surface). A good fit means the isotherm model describes the extraction equilibrium well.</div>
   </div>
 </div>
 
@@ -946,92 +958,116 @@ async function loadANNArch() {
 
 function renderANNDiagram(data) {
   const layers = data.layers;
-  const W = 700, H = 540;
-  const layerX = layers.map((_, i) => 60 + i * (W - 100) / (layers.length - 1));
 
-  // Color by type
+  // Color map by layer type
   const typeColor = {
-    input:     '#22d3ee',
-    dense:     '#818cf8',
-    batchnorm: '#2dd4bf',
-    dropout:   '#fbbf24',
-    output:    '#34d399',
+    input:     {bg:'#083344', stroke:'#22d3ee', text:'#22d3ee', badge:'#0e7490'},
+    dense:     {bg:'#1e1b4b', stroke:'#818cf8', text:'#818cf8', badge:'#4338ca'},
+    batchnorm: {bg:'#042f2e', stroke:'#2dd4bf', text:'#2dd4bf', badge:'#0f766e'},
+    dropout:   {bg:'#2d1e00', stroke:'#fbbf24', text:'#fbbf24', badge:'#b45309'},
+    output:    {bg:'#052e16', stroke:'#34d399', text:'#34d399', badge:'#15803d'},
+  };
+  const typeLabel = {
+    input:'Input', dense:'Dense', batchnorm:'BatchNorm', dropout:'Dropout', output:'Output'
   };
 
-  // Neuron dots to draw per layer (capped at 8)
-  function neuronsToShow(units) {
-    if (units <= 8) return units;
-    return 7; // show 7 + ellipsis
-  }
+  const SVG_W = 800;
+  const ROW_H = 52;
+  const ROW_GAP = 14;  // space for arrow between rows
+  const TOP_PAD = 44;  // title area
+  const n = layers.length;
+  const SVG_H = TOP_PAD + n * (ROW_H + ROW_GAP) + 10;
 
-  const svgH = H;
-  let svg = `<svg class="ann-svg" viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg">
+  let svg = `<svg class="ann-svg" viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg" style="font-family:ui-monospace,monospace;">
   <defs>
-    <radialGradient id="ng" cx="50%" cy="30%" r="70%">
-      <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#166534;stop-opacity:1"/>
-    </radialGradient>
+    <linearGradient id="arrowGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.5"/>
+    </linearGradient>
+    <marker id="arrowhead" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+      <polygon points="0 0, 7 3.5, 0 7" fill="#22d3ee" opacity="0.6"/>
+    </marker>
   </defs>`;
 
-  const maxUnits = Math.max(...layers.map(l=>l.units));
-  const maxH = 320;
+  // Title
+  svg += `<text x="${SVG_W/2}" y="26" text-anchor="middle" fill="#f1f5f9"
+    font-size="14" font-weight="700" letter-spacing="0.3">
+    ANN Architecture — ${data.total_params_est.toLocaleString()} params (est.)
+  </text>`;
 
-  // Draw connections first (between dense layers only)
-  for (let i = 0; i < layers.length - 1; i++) {
-    const l1 = layers[i], l2 = layers[i+1];
-    if (l1.type === 'batchnorm' || l1.type === 'dropout' ||
-        l2.type === 'batchnorm' || l2.type === 'dropout') continue;
-    const x1 = layerX[i], x2 = layerX[i+1];
-    const n1 = neuronsToShow(l1.units), n2 = neuronsToShow(l2.units);
-    const h1 = Math.min(n1 * 24, maxH), h2 = Math.min(n2 * 24, maxH);
-    for (let a = 0; a < Math.min(n1, 4); a++) {
-      const y1 = (svgH/2 - h1/2) + (a/(Math.max(n1-1,1))) * h1 + 40;
-      for (let b = 0; b < Math.min(n2, 4); b++) {
-        const y2 = (svgH/2 - h2/2) + (b/(Math.max(n2-1,1))) * h2 + 40;
-        svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-          stroke="rgba(100,116,139,0.18)" stroke-width="0.8"/>`;
-      }
-    }
-  }
-
-  // Draw layers
   layers.forEach((layer, i) => {
-    const x = layerX[i];
-    const col = typeColor[layer.type] || '#60a5fa';
-    const n = neuronsToShow(layer.units);
-    const spacing = Math.min(28, maxH / Math.max(n, 1));
-    const totalH = (n - 1) * spacing;
-    const startY = svgH/2 - totalH/2 + 40;
+    const col = typeColor[layer.type] || typeColor.dense;
+    const rowY = TOP_PAD + i * (ROW_H + ROW_GAP);
+    const midY = rowY + ROW_H / 2;
 
-    // Neurons
-    for (let j = 0; j < n; j++) {
-      const y = startY + j * spacing;
-      svg += `<circle cx="${x}" cy="${y}" r="7" fill="${col}" opacity="0.85"
-        stroke="${col}" stroke-width="1.5"/>`;
+    // Detect block boundaries for grouping (dense+batchnorm+dropout trio)
+    // Draw a subtle block background if this is the start of a block
+    // We'll just draw per-row backgrounds here
+
+    // ── Row background ──
+    svg += `<rect x="10" y="${rowY}" width="${SVG_W - 20}" height="${ROW_H}" rx="7"
+      fill="${col.bg}" stroke="${col.stroke}" stroke-width="0.6" opacity="0.85"/>`;
+
+    // ── Left type badge (72px wide) ──
+    svg += `<rect x="14" y="${rowY + 6}" width="72" height="${ROW_H - 12}" rx="5"
+      fill="${col.badge}"/>`;
+    svg += `<text x="50" y="${midY + 4}" text-anchor="middle" fill="#fff"
+      font-size="9.5" font-weight="700">${typeLabel[layer.type] || layer.type}</text>`;
+
+    // ── Neuron dots (max 12 shown) ──
+    const maxDots = 12;
+    const dotsStart = 96;
+    const dotR = 5;
+    const dotSpacing = 13;
+    const showDots = Math.min(layer.units, maxDots);
+    for (let d = 0; d < showDots; d++) {
+      svg += `<circle cx="${dotsStart + d * dotSpacing}" cy="${midY}" r="${dotR}"
+        fill="${col.stroke}" opacity="${d < showDots - 1 || layer.units <= maxDots ? '0.82' : '0.4'}"/>`;
     }
-    if (layer.units > 8) {
-      svg += `<text x="${x}" y="${startY + n*spacing + 8}" text-anchor="middle"
-        fill="#64748b" font-size="10">⋯${layer.units}</text>`;
+    if (layer.units > maxDots) {
+      const tx = dotsStart + maxDots * dotSpacing + 4;
+      svg += `<text x="${tx}" y="${midY + 4}" fill="${col.text}"
+        font-size="9.5" font-weight="600">×${layer.units}</text>`;
     }
 
-    // Label box
-    const lx = x - 42, ly = svgH - 85;
-    svg += `<rect x="${lx}" y="${ly}" width="84" height="42" rx="5"
-      fill="${col}" opacity="0.12" stroke="${col}" stroke-width="0.8"/>`;
-    svg += `<text x="${x}" y="${ly+14}" text-anchor="middle" fill="${col}"
-      font-size="9" font-weight="700">${layer.name}</text>`;
-    svg += `<text x="${x}" y="${ly+26}" text-anchor="middle" fill="#64748b"
-      font-size="8">${layer.units} units</text>`;
-    svg += `<text x="${x}" y="${ly+38}" text-anchor="middle" fill="#64748b"
-      font-size="8">${layer.desc}</text>`;
+    // ── Right side: layer name + description ──
+    const labelX = dotsStart + maxDots * dotSpacing + (layer.units > maxDots ? 38 : 8);
+    svg += `<text x="${labelX}" y="${midY - 5}" fill="${col.text}"
+      font-size="10.5" font-weight="700">${layer.name}</text>`;
+    // Parameter hint for dense layers
+    let desc = layer.desc || '';
+    if (layer.type === 'dense' && layer.units) {
+      const prevDense = layers.slice(0, i).reverse().find(l => l.type === 'dense' || l.type === 'input');
+      const prevUnits = prevDense ? prevDense.units : '?';
+      desc = `${layer.units} neurons · ~${(layer.units * (prevUnits + 1)).toLocaleString()} weights`;
+    }
+    svg += `<text x="${labelX}" y="${midY + 10}" fill="#94a3b8"
+      font-size="9" font-weight="400">${desc}</text>`;
+
+    // ── Downward arrow between rows ──
+    if (i < layers.length - 1) {
+      const ax = SVG_W / 2;
+      const ay1 = rowY + ROW_H + 1;
+      const ay2 = rowY + ROW_H + ROW_GAP - 2;
+      svg += `<line x1="${ax}" y1="${ay1}" x2="${ax}" y2="${ay2}"
+        stroke="url(#arrowGrad)" stroke-width="1.5" marker-end="url(#arrowhead)"/>`;
+    }
   });
 
-  // Title
-  svg += `<text x="${W/2}" y="20" text-anchor="middle" fill="#f1f5f9"
-    font-size="13" font-weight="700">ANN Architecture — ${data.total_params_est.toLocaleString()} params (est.)</text>`;
-
   svg += '</svg>';
-  document.getElementById('ann-diagram').innerHTML = svg;
+
+  // Legend (rendered as HTML below the SVG)
+  const legendHtml = `<div style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:10px;padding:8px 12px;
+      background:rgba(15,23,42,0.6);border-radius:8px;border:1px solid #1e293b;">
+    <span style="font-size:.72rem;color:#94a3b8;font-weight:600;letter-spacing:.05em;align-self:center;">LEGEND</span>
+    <span style="font-size:.72rem;color:#22d3ee;">&#9632; Input Layer</span>
+    <span style="font-size:.72rem;color:#818cf8;">&#9632; Dense (ELU)</span>
+    <span style="font-size:.72rem;color:#2dd4bf;">&#9632; BatchNorm</span>
+    <span style="font-size:.72rem;color:#fbbf24;">&#9632; Dropout</span>
+    <span style="font-size:.72rem;color:#34d399;">&#9632; Output</span>
+  </div>`;
+
+  document.getElementById('ann-diagram').innerHTML = svg + legendHtml;
 
   // Stats
   document.getElementById('ann-info').style.display = 'block';
