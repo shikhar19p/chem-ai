@@ -15,17 +15,16 @@ venv/
 env/
 .venv/
 
-# Data files (large)
-data/raw/*.csv
+# Data files (thesis_data.csv is tracked via git add -f)
 data/processed/*.csv
 
-# Model binaries (large)
+# Model binaries (trained on Render startup from thesis_data.csv)
 outputs/models/*.pkl
 outputs/models/*.keras
 outputs/models/*.h5
 
-# Reports (auto-generated)
-outputs/reports/
+# Reports (metrics_summary tracked via git add -f)
+outputs/figures/
 
 # Figures
 outputs/figures/

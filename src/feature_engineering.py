@@ -103,11 +103,11 @@ def prepare_data(df, target_col, feature_set='full',
 
 def build_single_input(Cin, TBA_pct, DES_ratio_num,
                        gamma_aq=None, gamma_org=None, C_TBA_molar=None,
-                       feature_set='full'):
+                       feature_set='full', acid_type='PA'):
     """
     Build a 2-D numpy array (1 row) for a single prediction input.
-    Used by the Streamlit app and run_pipeline.py.
 
+    acid_type : 'FA' | 'AA' | 'PA'  — sets one-hot acid columns
     If gamma values are not provided, they are estimated via NRTL model.
     """
     from src.data_generator import compute_nrtl_gamma
@@ -117,13 +117,14 @@ def build_single_input(Cin, TBA_pct, DES_ratio_num,
         )
     row = {
         'Cin': Cin, 'TBA_pct': TBA_pct, 'DES_ratio_num': DES_ratio_num,
+        'is_FA': 1.0 if acid_type == 'FA' else 0.0,
+        'is_AA': 1.0 if acid_type == 'AA' else 0.0,
+        'is_PA': 1.0 if acid_type == 'PA' else 0.0,
         'gamma_aq': gamma_aq, 'gamma_org': gamma_org, 'C_TBA_molar': C_TBA_molar,
         'Cin_sq': Cin**2, 'TBA_sq': TBA_pct**2, 'DES_sq': DES_ratio_num**2,
         'Cin_x_TBA': Cin*TBA_pct, 'Cin_x_DES': Cin*DES_ratio_num,
         'TBA_x_DES': TBA_pct*DES_ratio_num,
         'Cin_x_TBA_x_DES': Cin*TBA_pct*DES_ratio_num,
     }
-    features = get_features(
-        pd.DataFrame([row]), feature_set
-    )
+    features = get_features(pd.DataFrame([row]), feature_set)
     return np.array([[row[f] for f in features]]), features

@@ -1,6 +1,7 @@
 """
 config.py — Global constants and hyperparameters for the reactive extraction ML pipeline.
-System: Propionic Acid + TBA / DES (Thymol:Menthol)
+System: Monocarboxylic Acids (FA/AA/PA) + TOA + Menthol-Decanoic Acid HDES
+Data: Yıldız et al. (2023) Sep. Sci. Technol. 58(8):1450-1459
 """
 
 import os
@@ -24,12 +25,11 @@ PRESSURE_KPA = 101.32
 TARGETS = ['KD', 'E_pct', 'Z', 'SF_min']
 
 # ─── Feature sets ─────────────────────────────────────────────────────────────
-BASE_FEATURES  = ['Cin', 'TBA_pct', 'DES_ratio_num']
+BASE_FEATURES  = ['Cin', 'TBA_pct', 'DES_ratio_num', 'is_FA', 'is_AA', 'is_PA']
 GAMMA_FEATURES = BASE_FEATURES + ['gamma_aq', 'gamma_org', 'C_TBA_molar']
-POLY_FEATURES  = BASE_FEATURES + [
-    'Cin_sq', 'TBA_sq', 'DES_sq',
-    'Cin_x_TBA', 'Cin_x_DES', 'TBA_x_DES'
-]
+POLY_FEATURES  = ['Cin', 'TBA_pct', 'DES_ratio_num', 'is_FA', 'is_AA', 'is_PA',
+                  'Cin_sq', 'TBA_sq', 'DES_sq',
+                  'Cin_x_TBA', 'Cin_x_DES', 'TBA_x_DES']
 FULL_FEATURES  = POLY_FEATURES + ['gamma_aq', 'gamma_org', 'C_TBA_molar']
 
 # ─── Paths ────────────────────────────────────────────────────────────────────

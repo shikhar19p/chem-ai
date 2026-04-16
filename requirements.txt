@@ -16,12 +16,13 @@ xgboost>=2.0
 # Statistical modelling / RSM / ANOVA
 statsmodels>=0.14
 
+# Deep learning (ANN)
+tensorflow-cpu>=2.14; sys_platform != "darwin"
+tensorflow>=2.14; sys_platform == "darwin"
+
 # Bayesian Optimisation
 bayesian-optimization>=1.4
 
-# SHAP explainability (optional - skip if install fails)
-# shap>=0.43
-
-# Plotting (used by src modules, not strictly required for API)
+# Plotting (used by src modules)
 matplotlib>=3.7
 seaborn>=0.12
