@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>HDES Reactive Extraction — AI Predictor</title>
+<title>HDES Reactive Extraction — Predictor</title>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <style>
-/* ── Design tokens ── */
 :root{
-  --bg:#06101e;--surface:#0b1829;--card:#0f2035;--card2:#142840;
-  --border:#1a3356;--border2:#1f3d66;
-  --accent:#22d3ee;--accent2:#818cf8;--accent3:#34d399;
-  --warn:#fbbf24;--danger:#f87171;--pink:#f472b6;--orange:#fb923c;
-  --text:#f1f5f9;--muted:#64748b;--muted2:#334155;
-  --green:#34d399;--blue:#60a5fa;--purple:#a78bfa;--teal:#2dd4bf;
+  --bg:#03080f;--surface:#060e1a;--card:#0a1628;--card2:#0f1e38;
+  --border:#132240;--border2:#1a3060;
+  --accent:#00d4ff;--accent2:#7c6df8;--accent3:#00e5a0;
+  --warn:#f5c518;--danger:#ff5757;--pink:#ff5aaa;--orange:#ff8c42;
+  --text:#e2ecff;--muted:#4a6080;--muted2:#1e3050;
+  --green:#00e5a0;--blue:#4db3ff;--purple:#9980ff;--teal:#00d4c8;
   --radius:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -21,40 +20,38 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--surface);}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
-
-/* ── Layout ── */
 .app{display:flex;flex-direction:column;min-height:100vh;}
 
-/* ── Header ── */
-.header{background:linear-gradient(135deg,#04101f 0%,#0b1e3d 50%,#04101f 100%);
+/* Header */
+.header{background:linear-gradient(135deg,#020810 0%,#071830 50%,#020810 100%);
   border-bottom:1px solid var(--border2);padding:12px 24px;
-  display:flex;align-items:center;gap:16px;box-shadow:0 4px 30px rgba(0,0,0,.5);}
+  display:flex;align-items:center;gap:16px;box-shadow:0 4px 24px rgba(0,0,0,.6);}
 .header-logo{width:44px;height:44px;background:linear-gradient(135deg,var(--accent),var(--accent2));
   border-radius:12px;display:flex;align-items:center;justify-content:center;
-  font-size:22px;box-shadow:0 0 20px rgba(34,211,238,.35);flex-shrink:0;}
+  font-size:22px;box-shadow:0 0 20px rgba(0,212,255,.3);flex-shrink:0;}
 .header-text h1{font-size:1.15rem;font-weight:700;color:var(--text);}
 .header-text p{font-size:.7rem;color:var(--muted);margin-top:1px;}
 .header-badges{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
 .hbadge{padding:3px 10px;border-radius:20px;font-size:.65rem;font-weight:700;border:1px solid;white-space:nowrap;}
-.hbadge-blue{background:rgba(34,211,238,.1);border-color:var(--accent);color:var(--accent);}
-.hbadge-purple{background:rgba(129,140,248,.1);border-color:var(--accent2);color:var(--accent2);}
+.hbadge-blue{background:rgba(0,212,255,.1);border-color:var(--accent);color:var(--accent);}
+.hbadge-purple{background:rgba(124,109,248,.1);border-color:var(--accent2);color:var(--accent2);}
 
-/* ── Body ── */
+/* Layout */
 .body{display:flex;flex:1;overflow:hidden;}
 .sidebar{width:280px;min-width:280px;background:var(--surface);border-right:1px solid var(--border);
   padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
 .content{flex:1;overflow-y:auto;padding:20px;background:var(--bg);}
 
-/* ── Tabs ── */
+/* Tabs */
 .tabs{display:flex;gap:3px;margin-bottom:18px;background:var(--surface);
   padding:4px;border-radius:var(--radius);border:1px solid var(--border);flex-wrap:wrap;}
-.tab{flex:1;padding:7px 6px;text-align:center;font-size:.68rem;font-weight:600;
+.tab{flex:1;padding:7px 5px;text-align:center;font-size:.66rem;font-weight:600;
   color:var(--muted);cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap;}
 .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#06101e;box-shadow:0 2px 14px rgba(34,211,238,.3);}
+  color:#020810;box-shadow:0 2px 14px rgba(0,212,255,.3);}
 .tab:hover:not(.active){background:var(--card);color:var(--text);}
 
-/* ── Cards ── */
+/* Cards */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
   padding:16px;margin-bottom:14px;}
 .card.a-top{border-top:2px solid var(--accent);}
@@ -63,11 +60,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .card.w-top{border-top:2px solid var(--warn);}
 .card.t-top{border-top:2px solid var(--teal);}
 .card.o-top{border-top:2px solid var(--orange);}
+.card.pink-top{border-top:2px solid var(--pink);}
 .card-title{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:12px;
   display:flex;align-items:center;gap:8px;}
-.card-title .icon{font-size:1rem;}
 
-/* ── Form controls ── */
+/* Forms */
 .section-label{font-size:.62rem;font-weight:700;color:var(--muted);
   letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
 label{display:block;font-size:.71rem;color:var(--muted);margin-bottom:3px;font-weight:500;}
@@ -79,27 +76,25 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
 .slider-row{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);margin-top:2px;}
 .val-display{color:var(--accent);font-weight:700;font-size:.82rem;}
 
-/* ── Buttons ── */
+/* Buttons */
 .btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#06101e;font-weight:700;font-size:.83rem;border:none;border-radius:8px;
-  cursor:pointer;transition:all .2s;box-shadow:0 0 18px rgba(34,211,238,.2);}
-.btn:hover{transform:translateY(-1px);box-shadow:0 0 28px rgba(34,211,238,.4);}
+  color:#020810;font-weight:700;font-size:.83rem;border:none;border-radius:8px;
+  cursor:pointer;transition:all .2s;box-shadow:0 0 18px rgba(0,212,255,.2);}
+.btn:hover{transform:translateY(-1px);box-shadow:0 0 28px rgba(0,212,255,.4);}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
 .btn-sm{padding:6px 14px;font-size:.7rem;background:var(--card2);color:var(--accent);
   border:1px solid var(--accent);border-radius:6px;cursor:pointer;font-weight:600;width:auto;}
-.btn-sm:hover{background:rgba(34,211,238,.1);}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-sm:hover{background:rgba(0,212,255,.1);}
 
-/* ── Status bar ── */
+/* Status */
 .status-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;
   background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:.71rem;}
 .spinner{width:13px;height:13px;border:2px solid var(--border2);
   border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
-.dot.warn{background:var(--warn);}
 
-/* ── NRTL box ── */
+/* NRTL */
 .nrtl-box{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px;}
 .nrtl-row{display:flex;justify-content:space-between;font-size:.7rem;padding:3px 0;
   border-bottom:1px solid var(--border);}
@@ -107,21 +102,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
 .nrtl-row span:first-child{color:var(--muted);}
 .nrtl-row span:last-child{color:var(--accent);font-weight:600;}
 
-/* ── Prediction results ── */
-.pred-hero{background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(129,140,248,.08));
-  border:1px solid rgba(34,211,238,.25);border-radius:var(--radius);
-  padding:18px;margin-bottom:16px;text-align:center;}
-.pred-hero .label{font-size:.65rem;color:var(--muted);text-transform:uppercase;
-  letter-spacing:.1em;margin-bottom:4px;}
-.pred-hero .value{font-size:3rem;font-weight:800;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.pred-hero .sub{font-size:.72rem;color:var(--muted);margin-top:4px;}
-
-.best-model-badge{display:inline-flex;align-items:center;gap:6px;
-  padding:4px 12px;border-radius:20px;font-size:.7rem;font-weight:700;
-  background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:var(--green);}
-
+/* Prediction */
 .pred-grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px;}
 .pred-card{background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:13px;position:relative;overflow:hidden;}
 .pred-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
@@ -134,21 +115,24 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
 .model-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;
   border-bottom:1px solid rgba(26,51,86,.5);}
 .model-row:last-child{border-bottom:none;}
-.model-row.best{background:rgba(52,211,153,.07);border-radius:4px;padding-inline:4px;}
+.model-row.best{background:rgba(0,229,160,.07);border-radius:4px;padding-inline:4px;}
 .model-tag{font-size:.64rem;color:var(--muted);font-weight:500;}
 .model-tag.best{color:var(--green);font-weight:700;}
 .model-val{font-size:.74rem;font-weight:700;}
-.crown{font-size:.65rem;}
+.best-model-badge{display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:20px;font-size:.7rem;font-weight:700;
+  background:rgba(0,229,160,.15);border:1px solid rgba(0,229,160,.4);color:var(--green);}
 
-/* ── Accuracy chart container ── */
+/* Accuracy */
 .acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.chart-wrap{position:relative;height:260px;}
-.chart-wrap-lg{position:relative;height:380px;}
-.chart-wrap-sm{position:relative;height:200px;}
+.chart-wrap{position:relative;height:300px;}
+.chart-wrap-lg{position:relative;height:400px;}
+.chart-wrap-xl{position:relative;height:480px;}
 
-/* ── Grids ── */
+/* Grid helpers */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
 .metric-tile{background:var(--card2);border:1px solid var(--border2);
   border-radius:8px;padding:12px;text-align:center;}
 .metric-val{font-size:1.4rem;font-weight:800;
@@ -156,35 +140,41 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .metric-lbl{font-size:.63rem;color:var(--muted);margin-top:2px;}
 
-/* ── ANN Visualisation ── */
+/* ANN */
 .ann-diagram{width:100%;overflow-x:auto;padding:12px 0;}
 .ann-svg{display:block;margin:0 auto;min-width:600px;}
 
-/* ── MATLAB section ── */
+/* MATLAB */
 .matlab-eq{background:var(--card2);border:1px solid var(--border2);
   border-radius:8px;padding:14px;font-family:'Courier New',monospace;
-  font-size:.74rem;color:var(--green);line-height:1.8;overflow-x:auto;}
-.matlab-param{display:inline-block;color:var(--accent);}
+  font-size:.74rem;color:var(--green);line-height:1.8;overflow-x:auto;white-space:pre-wrap;}
 
-/* ── Table ── */
+/* Tables */
 .heat-wrap{overflow-x:auto;}
 .heat-table{border-collapse:collapse;font-size:.65rem;min-width:400px;width:100%;}
 .heat-table th{background:var(--card2);color:var(--muted);padding:6px 8px;
   text-align:center;border:1px solid var(--border);font-weight:600;}
 .heat-table td{padding:5px 8px;text-align:center;border:1px solid var(--border);
   font-weight:600;font-size:.67rem;}
+.anova-table{width:100%;border-collapse:collapse;font-size:.68rem;}
+.anova-table th{background:var(--card2);color:var(--muted);padding:6px 10px;
+  text-align:left;border-bottom:1px solid var(--border2);font-weight:600;}
+.anova-table td{padding:5px 10px;border-bottom:1px solid rgba(19,34,64,.6);}
+.anova-table td:not(:first-child){text-align:right;}
+.sig{color:var(--green);font-weight:700;}
+.nsig{color:var(--muted);}
 
-/* ── Sensitivity controls ── */
+/* Controls */
 .sens-ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
 .sens-ctrl label{margin:0;white-space:nowrap;}
 .sens-ctrl select{width:auto;padding:5px 8px;}
 
-/* ── Badges ── */
+/* Badges */
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.6rem;font-weight:700;}
-.badge-out{background:rgba(251,191,36,.12);color:var(--warn);border:1px solid rgba(251,191,36,.3);}
-.badge-in{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.3);}
+.badge-out{background:rgba(245,197,24,.12);color:var(--warn);border:1px solid rgba(245,197,24,.3);}
+.badge-in{background:rgba(0,229,160,.12);color:var(--green);border:1px solid rgba(0,229,160,.3);}
 
-/* ── Iso params ── */
+/* Isotherms */
 .iso-params{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
 .iso-card{background:var(--card2);border:1px solid var(--border2);border-radius:8px;
   padding:10px 14px;min-width:140px;}
@@ -193,114 +183,128 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
 .iso-row span:first-child{color:var(--muted);}
 .iso-row span:last-child{color:var(--accent);font-weight:700;}
 
-/* ── ANOVA table ── */
-.anova-table{width:100%;border-collapse:collapse;font-size:.68rem;}
-.anova-table th{background:var(--card2);color:var(--muted);padding:6px 10px;
-  text-align:left;border-bottom:1px solid var(--border2);font-weight:600;}
-.anova-table td{padding:5px 10px;border-bottom:1px solid rgba(26,51,86,.4);}
-.anova-table td:not(:first-child){text-align:right;}
-.sig{color:var(--green);font-weight:700;}
-.nsig{color:var(--muted);}
-
-/* ── Acid selector ── */
-.acid-strip{display:flex;gap:6px;margin-bottom:12px;}
+/* Acid chips */
+.acid-strip{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
 .acid-chip{padding:5px 14px;border-radius:20px;font-size:.72rem;font-weight:600;
   cursor:pointer;border:1px solid var(--border2);background:var(--card2);color:var(--muted);transition:all .2s;}
-.acid-chip.active{background:linear-gradient(135deg,rgba(34,211,238,.18),rgba(129,140,248,.18));
+.acid-chip.active{background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(124,109,248,.18));
   border-color:var(--accent);color:var(--accent);}
 .acid-chip:hover:not(.active){border-color:var(--accent);color:var(--text);}
 
-/* ── Info box ── */
-.info-box{background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.2);
+/* Info box */
+.info-box{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.18);
   border-radius:8px;padding:10px 14px;font-size:.71rem;color:var(--muted);line-height:1.6;}
 .info-box strong{color:var(--accent);}
 
-/* ── Responsive ── */
-@media(max-width:900px){
-  .body{flex-direction:column;}
-  .sidebar{width:100%;min-width:unset;border-right:none;border-bottom:1px solid var(--border);}
-  .grid2,.acc-grid{grid-template-columns:1fr;}
-}
-.chart-guide{background:rgba(34,211,238,.05);border-left:3px solid var(--accent);
+/* Chart guide */
+.chart-guide{background:rgba(0,212,255,.04);border-left:3px solid var(--accent);
   border-radius:0 6px 6px 0;padding:10px 14px;margin-top:10px;
   font-size:.71rem;color:var(--muted);line-height:1.7;}
 .chart-guide strong{color:var(--accent);}
-.chart-guide .guide-icon{font-size:.85rem;}
+
+/* Chemistry tab */
+.chem-grid{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px;}
+.mol-box{background:var(--card2);border:1px solid var(--border2);border-radius:10px;
+  padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.mol-formula{font-size:.95rem;font-weight:700;color:var(--accent);font-family:monospace;}
+.prop-table{width:100%;border-collapse:collapse;font-size:.7rem;}
+.prop-table tr{border-bottom:1px solid var(--border);}
+.prop-table tr:last-child{border-bottom:none;}
+.prop-table td:first-child{color:var(--muted);padding:5px 0;width:50%;}
+.prop-table td:last-child{color:var(--text);font-weight:600;text-align:right;}
+.inter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:14px;}
+.inter-card{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px;}
+.inter-name{font-size:.72rem;font-weight:700;color:var(--accent);margin-bottom:3px;}
+.inter-formula{font-size:.68rem;color:var(--purple);margin-bottom:4px;font-family:monospace;}
+.inter-role{font-size:.65rem;color:var(--muted);line-height:1.4;}
+.eq-box{background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.2);
+  border-radius:8px;padding:12px;margin-bottom:12px;text-align:center;}
+.eq-text{font-size:.8rem;color:var(--accent);font-family:monospace;}
+.eq-desc{font-size:.65rem;color:var(--muted);margin-top:4px;}
+.mech-text{font-size:.7rem;color:var(--muted);line-height:1.7;background:var(--card2);
+  border-left:3px solid var(--accent2);padding:10px 12px;border-radius:0 6px 6px 0;}
+
+/* Bayesian tab */
+.bayes-opt-card{background:linear-gradient(135deg,rgba(0,212,255,.06),rgba(124,109,248,.06));
+  border:1px solid rgba(0,212,255,.2);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+.opt-val{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.opt-lbl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.next-table{width:100%;border-collapse:collapse;font-size:.7rem;}
+.next-table th{background:var(--card2);color:var(--muted);padding:7px 10px;
+  text-align:left;border-bottom:1px solid var(--border2);font-weight:600;}
+.next-table td{padding:6px 10px;border-bottom:1px solid var(--border);}
+.next-table tr:last-child td{border-bottom:none;}
+.next-table td:first-child{color:var(--accent);font-weight:700;}
+
+/* Responsive */
+@media(max-width:900px){
+  .body{flex-direction:column;}
+  .sidebar{width:100%;min-width:unset;border-right:none;border-bottom:1px solid var(--border);}
+  .grid2,.acc-grid,.chem-grid{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
 <div class="app" id="root">
-<!-- ── HEADER ── -->
+
+<!-- HEADER -->
 <header class="header">
   <div class="header-logo">🧪</div>
   <div class="header-text">
-    <h1>HDES Reactive Extraction — AI Predictor</h1>
-    <p>Menthol-Decanoic Acid HDES + TOA System · Yıldız et al. (2023) · 5 ML/DL Models</p>
+    <h1>HDES Reactive Extraction — Predictor</h1>
+    <p>Menthol-Decanoic Acid HDES + TOA System · Yıldız et al. (2023) · 5 Computational Models</p>
   </div>
   <div class="header-badges">
     <span class="hbadge hbadge-blue">RSM · RF · XGBoost · GPR · ANN</span>
-    <span class="hbadge hbadge-purple">Live API v3.0</span>
+    <span class="hbadge hbadge-purple">API v3.1</span>
   </div>
 </header>
 
-<!-- ── MAIN ── -->
 <div class="body">
 
-<!-- ──────────────── SIDEBAR ──────────────── -->
+<!-- SIDEBAR -->
 <aside class="sidebar">
-
   <div class="section-label">System Parameters</div>
 
-  <!-- Acid concentration -->
   <div>
-    <label>Initial Acid Concentration (wt%)
-      <span class="val-display" id="cin-val">10.0</span>
-    </label>
+    <label>Initial Acid Concentration (wt%) <span class="val-display" id="cin-val">10.0</span></label>
     <input type="range" id="cin" min="5" max="15" step="0.5" value="10"
            oninput="document.getElementById('cin-val').textContent=parseFloat(this.value).toFixed(1)"/>
     <div class="slider-row"><span>5%</span><span>15%</span></div>
   </div>
 
-  <!-- HDES molar ratio -->
   <div>
-    <label>HDES Molar Ratio (DecA:Menthol)
-      <span class="val-display" id="hdes-val">1.0</span>
-    </label>
+    <label>HDES Molar Ratio (DecA:Menthol) <span class="val-display" id="hdes-val">1.00</span></label>
     <input type="range" id="hdes" min="0.5" max="1.5" step="0.05" value="1.0"
            oninput="document.getElementById('hdes-val').textContent=parseFloat(this.value).toFixed(2)"/>
     <div class="slider-row"><span>0.5</span><span>1.5</span></div>
   </div>
 
-  <!-- TOA concentration -->
   <div>
-    <label>TOA Concentration (mol/L)
-      <span class="val-display" id="toa-val">1.0</span>
-    </label>
+    <label>TOA Concentration (mol/L) <span class="val-display" id="toa-val">1.00</span></label>
     <input type="range" id="toa" min="0.1" max="1.9" step="0.05" value="1.0"
            oninput="document.getElementById('toa-val').textContent=parseFloat(this.value).toFixed(2)"/>
     <div class="slider-row"><span>0.1</span><span>1.9</span></div>
   </div>
 
-  <!-- Acid type selector -->
   <div>
     <div class="section-label">Acid Type</div>
     <div class="acid-strip">
       <div class="acid-chip active" id="acid-PA" onclick="selectSysAcid('PA',this)">PA</div>
       <div class="acid-chip" id="acid-AA" onclick="selectSysAcid('AA',this)">AA</div>
       <div class="acid-chip" id="acid-FA" onclick="selectSysAcid('FA',this)">FA</div>
+      <div class="acid-chip" id="acid-IA" onclick="selectSysAcid('IA',this)">IA</div>
     </div>
-    <div style="font-size:.65rem;color:var(--muted);">PA=Propionic · AA=Acetic · FA=Formic</div>
+    <div style="font-size:.63rem;color:var(--muted);">PA=Propionic · AA=Acetic · FA=Formic · IA=Itaconic*</div>
   </div>
 
-  <button class="btn" id="predict-btn" onclick="runPrediction()">
-    ⚡ Predict &amp; Compare Models
-  </button>
+  <button class="btn" id="predict-btn" onclick="runPrediction()">⚡ Predict &amp; Compare Models</button>
 
   <div id="status-bar" style="display:none" class="status-bar">
     <div class="spinner"></div><span id="status-msg">Running models…</span>
   </div>
 
-  <!-- NRTL values -->
   <div>
     <div class="section-label" style="margin-top:4px">NRTL Thermodynamics</div>
     <div class="nrtl-box">
@@ -311,113 +315,89 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
     </div>
   </div>
 
-  <!-- Quick tips -->
   <div class="info-box">
-    💡 <strong>Tip:</strong> Highest efficiency at low acid conc (5%), low HDES ratio (0.5), high TOA (1.9 mol/L).<br/>
-    Paper max: <strong>PA=97.1%</strong>, AA=93.2%, FA=89.5%
+    💡 <strong>Tip:</strong> Max efficiency at low acid (5%), low HDES ratio (0.5), high TOA (1.9 mol/L).<br/>
+    Paper peaks: <strong>PA≈97%</strong>, AA≈93%, FA≈90%<br/>
+    *IA = Itaconic acid (estimated model)
   </div>
 </aside>
 
-<!-- ──────────────── CONTENT ──────────────── -->
+<!-- CONTENT -->
 <main class="content">
 
 <div class="tabs">
-  <div class="tab active" onclick="showTab('results')">📊 Results</div>
-  <div class="tab" onclick="showTab('accuracy')">🎯 Model Accuracy</div>
-  <div class="tab" onclick="showTab('ann')">🧠 ANN Architecture</div>
-  <div class="tab" onclick="showTab('surface3d')">🌐 3D Surface</div>
-  <div class="tab" onclick="showTab('sensitivity')">📈 Sensitivity</div>
-  <div class="tab" onclick="showTab('matlab')">📐 MATLAB/RSM</div>
-  <div class="tab" onclick="showTab('isotherms')">⚗️ Isotherms</div>
+  <div class="tab active" onclick="showTab('results',this)">📊 Results</div>
+  <div class="tab" onclick="showTab('accuracy',this)">🎯 Accuracy</div>
+  <div class="tab" onclick="showTab('ann',this)">🧠 ANN</div>
+  <div class="tab" onclick="showTab('surface3d',this)">🌐 3D Surface</div>
+  <div class="tab" onclick="showTab('sensitivity',this)">📈 Sensitivity</div>
+  <div class="tab" onclick="showTab('matlab',this)">📐 MATLAB/RSM</div>
+  <div class="tab" onclick="showTab('isotherms',this)">⚗️ Isotherms</div>
+  <div class="tab" onclick="showTab('chemistry',this)">🔬 Chemistry</div>
+  <div class="tab" onclick="showTab('bayesian',this)">🎲 Bayesian</div>
 </div>
 
-<!-- ═══ RESULTS TAB ═══ -->
+<!-- ═══ RESULTS ═══ -->
 <div id="tab-results">
-
-  <!-- Placeholder before first prediction -->
   <div id="results-placeholder" class="card" style="text-align:center;padding:40px;">
     <div style="font-size:3rem;margin-bottom:12px;">🧪</div>
     <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:8px;">
       Set parameters &amp; click <span style="color:var(--accent)">Predict</span>
     </div>
     <div style="font-size:.75rem;color:var(--muted)">
-      5 models will run in parallel — RSM, Random Forest, XGBoost, GPR, ANN (deep learning)<br/>
-      Best model is highlighted automatically based on validation R²
+      5 models run in parallel — RSM, Random Forest, XGBoost, GPR, ANN<br/>
+      Best model highlighted automatically · GPR includes uncertainty (±1σ)
     </div>
   </div>
-
   <div id="results-content" style="display:none">
-
-    <!-- Best model banner -->
     <div class="card a-top" id="best-banner">
-      <div class="card-title"><span class="icon">🏆</span> Prediction Summary</div>
+      <div class="card-title"><span>🏆</span> Prediction Summary</div>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
-        <div>
-          <div style="font-size:.62rem;color:var(--muted);margin-bottom:2px;">BEST MODEL</div>
-          <span class="best-model-badge" id="best-model-name">—</span>
-        </div>
-        <div>
-          <div style="font-size:.62rem;color:var(--muted);margin-bottom:2px;">EXTRACTION EFF.</div>
+        <div><div style="font-size:.62rem;color:var(--muted);margin-bottom:2px;">BEST MODEL</div>
+          <span class="best-model-badge" id="best-model-name">—</span></div>
+        <div><div style="font-size:.62rem;color:var(--muted);margin-bottom:2px;">EXTRACTION EFF.</div>
           <span style="font-size:1.6rem;font-weight:800;color:var(--accent);" id="best-epct">—</span>
-          <span style="font-size:.8rem;color:var(--muted);">%</span>
-        </div>
-        <div>
-          <div style="font-size:.62rem;color:var(--muted);margin-bottom:2px;">DIST. COEFF. KD</div>
-          <span style="font-size:1.6rem;font-weight:800;color:var(--green);" id="best-kd">—</span>
-        </div>
-        <div>
-          <div style="font-size:.62rem;color:var(--muted);margin-bottom:2px;">LOADING Z</div>
-          <span style="font-size:1.6rem;font-weight:800;color:var(--purple);" id="best-z">—</span>
-        </div>
+          <span style="font-size:.8rem;color:var(--muted);">%</span></div>
+        <div><div style="font-size:.62rem;color:var(--muted);margin-bottom:2px;">DIST. COEFF. KD</div>
+          <span style="font-size:1.6rem;font-weight:800;color:var(--green);" id="best-kd">—</span></div>
+        <div><div style="font-size:.62rem;color:var(--muted);margin-bottom:2px;">LOADING Z</div>
+          <span style="font-size:1.6rem;font-weight:800;color:var(--purple);" id="best-z">—</span></div>
         <div id="range-badge" style="margin-left:auto"></div>
       </div>
-      <!-- Model comparison bar -->
       <div style="font-size:.65rem;color:var(--muted);margin-bottom:6px;font-weight:600;">MODEL COMPARISON — Extraction Efficiency E%</div>
       <div id="model-comparison-bars"></div>
     </div>
-
-    <!-- Detailed predictions grid -->
     <div class="pred-grid4" id="pred-grid"></div>
-
-    <!-- Mini comparison chart (Plotly) -->
     <div class="card g-top">
-      <div class="card-title"><span class="icon">📊</span> All Targets — Model Comparison</div>
+      <div class="card-title"><span>📊</span> All Targets — Model Comparison</div>
       <div class="chart-wrap-lg" id="compare-chart"></div>
-      <div class="chart-guide">&#128214; <strong>How to read:</strong> Each group of bars = one output variable (KD, E%, Z, SF). Each colored bar = one ML model. Taller bar = higher predicted value. Compare bar heights to see which model gives the highest or most consistent prediction for your input.</div>
+      <div class="chart-guide"><strong>How to read:</strong> Each group of bars = one output variable (KD, E%, Z, SF). Each colored bar = one computational model. Compare bar heights to see which model predicts highest or most consistent value for your input conditions.</div>
     </div>
-
   </div>
 </div>
 
-<!-- ═══ ACCURACY TAB ═══ -->
+<!-- ═══ ACCURACY ═══ -->
 <div id="tab-accuracy" style="display:none">
   <div class="card a-top">
-    <div class="card-title"><span class="icon">🎯</span> Model Accuracy (R² &amp; RMSE) on Test Set</div>
+    <div class="card-title"><span>🎯</span> Model Accuracy — R² &amp; RMSE on Test Set</div>
     <div class="info-box" style="margin-bottom:14px;">
-      Trained on <strong>240 samples</strong> derived from paper RSM equations (Yıldız et al., 2023).
-      ANN is the only deep-learning model; RF, XGBoost, GPR, RSM are classical ML.
-      High R² = good fit. Low RMSE = low prediction error.
+      Trained on <strong>240 samples</strong> from paper RSM equations (Yıldız et al., 2023).
+      RSM uses statsmodels OLS; RF, XGBoost are tree ensembles; GPR = Gaussian Process; ANN = deep learning (Keras).
     </div>
     <button class="btn-sm" onclick="loadAccuracy()" style="margin-bottom:14px;">↻ Refresh Metrics</button>
-    <div class="chart-guide" style="margin-bottom:10px;">&#128214; <strong>How to read accuracy charts:</strong> R² (top chart): closer to 1.0 = better fit — the model explains more variance. RMSE (bottom chart): lower = smaller average prediction error. GPR typically gives highest R² for E% because it captures non-linear patterns. ANN needs more data to match GPR performance.</div>
-    <div id="acc-loading" class="status-bar" style="display:none">
-      <div class="spinner"></div><span>Loading metrics…</span>
-    </div>
+    <div id="acc-loading" class="status-bar" style="display:none"><div class="spinner"></div><span>Loading…</span></div>
     <div class="acc-grid" id="acc-charts"></div>
     <div style="margin-top:14px;" id="acc-table-wrap"></div>
   </div>
 </div>
 
-<!-- ═══ ANN ARCHITECTURE TAB ═══ -->
+<!-- ═══ ANN ═══ -->
 <div id="tab-ann" style="display:none">
   <div class="card p-top">
-    <div class="card-title"><span class="icon">🧠</span> Neural Network Architecture</div>
+    <div class="card-title"><span>🧠</span> Neural Network Architecture</div>
     <div class="info-box" style="margin-bottom:14px;">
-      Deep feedforward ANN with <strong>ELU activations</strong>, BatchNormalization,
-      Dropout regularisation, and L2 weight decay.
-      Trained with Adam optimiser + EarlyStopping (patience=60) on
-      <strong>240 paper-derived samples</strong>. ANN is the only DL model
-      (all others are classical ML).
+      Deep feedforward ANN with <strong>ELU activations</strong>, BatchNormalization, Dropout regularisation.
+      Adam optimiser + EarlyStopping (patience=60) on <strong>240 paper-derived samples</strong>.
     </div>
     <button class="btn-sm" onclick="loadANNArch()" style="margin-bottom:14px;">↻ Load Architecture</button>
     <div id="ann-diagram"></div>
@@ -425,66 +405,52 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
       <div class="grid3" id="ann-stats" style="margin-top:14px;"></div>
     </div>
   </div>
-
-  <!-- Training tips -->
   <div class="card t-top">
-    <div class="card-title"><span class="icon">⚠️</span> Dataset &amp; ANN Notes</div>
+    <div class="card-title"><span>⚠️</span> Dataset &amp; Model Notes</div>
     <div style="font-size:.73rem;color:var(--muted);line-height:1.8;">
-      <p>✅ <strong>Dataset source:</strong> 240 rows generated from paper RSM equations
-         (Yıldız et al. 2023) — formic, acetic, propionic acid × CCD design + dense grid</p>
-      <p>✅ <strong>Balanced:</strong> Equal samples per acid type (80 each);
-         continuous coverage from low to high efficiency regions</p>
-      <p>✅ <strong>ANN vs dataset size:</strong> Neural networks normally need large datasets.
-         With only 240 rows, ANN may underperform vs RF/XGBoost.
-         R² is shown on the Accuracy tab after training.</p>
-      <p>✅ <strong>Training callbacks:</strong> EarlyStopping + ReduceLROnPlateau prevent overfitting</p>
+      <p>✅ <strong>Dataset:</strong> 240 rows from paper RSM (Yıldız et al. 2023) — FA, AA, PA × CCD + dense grid</p>
+      <p>✅ <strong>Balanced:</strong> 80 samples per acid type; continuous coverage from low to high efficiency</p>
+      <p>✅ <strong>ANN vs dataset size:</strong> With 240 rows ANN may underperform vs RF/XGBoost. R² shown after training.</p>
+      <p>✅ <strong>Callbacks:</strong> EarlyStopping + ReduceLROnPlateau prevent overfitting</p>
       <p>✅ <strong>Recommendation:</strong> If ANN R² &lt; 0.92, prefer GPR or XGBoost for predictions</p>
     </div>
   </div>
 </div>
 
-<!-- ═══ 3D SURFACE TAB ═══ -->
+<!-- ═══ 3D SURFACE ═══ -->
 <div id="tab-surface3d" style="display:none">
   <div class="card o-top">
-    <div class="card-title"><span class="icon">🌐</span> 3D Response Surface (Paper RSM Equations)</div>
+    <div class="card-title"><span>🌐</span> 3D Response Surface — Paper RSM Equations</div>
     <div class="info-box" style="margin-bottom:14px;">
-      Direct implementation of the quadratic RSM equations from Yıldız et al. (2023).
-      Equivalent to the 3D plots in the paper (Figs. 3–5).
+      Direct implementation of quadratic RSM from Yıldız et al. (2023). Equivalent to Design-Expert® 3D plots.
     </div>
     <div class="sens-ctrl">
-      <div>
-        <label>Acid Type</label>
+      <div><label>Acid Type</label>
         <select id="surf-acid" onchange="load3DSurface()">
           <option value="PA">Propionic Acid (PA)</option>
           <option value="AA">Acetic Acid (AA)</option>
           <option value="FA">Formic Acid (FA)</option>
-        </select>
-      </div>
-      <div>
-        <label>X-axis</label>
+          <option value="IA">Itaconic Acid (IA)*</option>
+        </select></div>
+      <div><label>X-axis</label>
         <select id="surf-xvar" onchange="load3DSurface()">
           <option value="X3">TOA concentration</option>
           <option value="X1">Acid concentration</option>
           <option value="X2">HDES molar ratio</option>
-        </select>
-      </div>
-      <div>
-        <label>Y-axis</label>
+        </select></div>
+      <div><label>Y-axis</label>
         <select id="surf-yvar" onchange="load3DSurface()">
           <option value="X2">HDES molar ratio</option>
           <option value="X1">Acid concentration</option>
           <option value="X3">TOA concentration</option>
-        </select>
-      </div>
+        </select></div>
       <button class="btn-sm" onclick="load3DSurface()">↻ Update</button>
     </div>
     <div id="surface3d-chart" style="height:480px;"></div>
-    <div class="chart-guide">&#128214; <strong>How to read the 3D surface:</strong> The X and Y axes are the two input variables you selected. The Z axis (height) = Extraction Efficiency E%. Higher peaks = better extraction. Rotate by clicking &amp; dragging. Bright green/teal = high efficiency (&gt;90%), dark blue = low efficiency. The peak region shows the optimum operating conditions.</div>
+    <div class="chart-guide"><strong>How to read:</strong> Z-axis (height) = Extraction Efficiency E%. Rotate by dragging. Bright cyan/green peaks = high efficiency (&gt;85%). Dark regions = low extraction. The optimum is typically at low acid conc (X1=−1), low HDES ratio (X2=−1), and high TOA (X3=+1).</div>
   </div>
-
-  <!-- 2D heatmap from ML models -->
   <div class="card a-top">
-    <div class="card-title"><span class="icon">🌡️</span> Heatmap — ML Model Prediction Grid</div>
+    <div class="card-title"><span>🌡️</span> Heatmap — Model Prediction Grid</div>
     <div class="sens-ctrl">
       <div><label>Target</label>
         <select id="hm-target">
@@ -516,14 +482,14 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
       <button class="btn-sm" onclick="loadHeatmap()">↻ Generate</button>
     </div>
     <div id="heatmap-chart" style="height:420px;"></div>
-    <div class="chart-guide">&#128214; <strong>How to read the heatmap:</strong> Each cell = a predicted output value at that X/Y combination. Brighter yellow = higher value, darker purple = lower value. Look for the brightest region — that is the optimal operating zone. Use this to quickly find which combination of two variables gives the best result.</div>
+    <div class="chart-guide"><strong>How to read:</strong> Each cell = predicted output at that X/Y combination. Yellow = high value, dark purple = low value (Viridis scale). The bright yellow region marks the optimal operating zone. Use this to quickly find the best combination of two process variables.</div>
   </div>
 </div>
 
-<!-- ═══ SENSITIVITY TAB ═══ -->
+<!-- ═══ SENSITIVITY ═══ -->
 <div id="tab-sensitivity" style="display:none">
   <div class="card g-top">
-    <div class="card-title"><span class="icon">📈</span> Sensitivity Analysis — All Models</div>
+    <div class="card-title"><span>📈</span> Sensitivity Analysis — All Models</div>
     <div class="sens-ctrl">
       <div><label>Sweep variable</label>
         <select id="sens-xvar">
@@ -540,73 +506,54 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
         </select></div>
       <button class="btn-sm" onclick="loadSensitivity()">↻ Run</button>
     </div>
-    <div id="sensitivity-chart" style="height:380px;"></div>
-    <div class="chart-guide">&#128214; <strong>How to read:</strong> The X axis sweeps one input variable across its full range while all others stay fixed. The Y axis shows the predicted output. Each line = one ML model. Steep rising lines = that variable strongly increases the output. Flat lines = variable has little effect. When all model lines agree → high confidence.</div>
+    <div id="sensitivity-chart" style="height:420px;"></div>
+    <div class="chart-guide"><strong>How to read:</strong> X-axis sweeps one input across its full range; all others stay fixed. Each colored line = one model. Steep rising lines = variable strongly increases output. When all models agree → high confidence region. GPR shaded band shows ±1σ uncertainty.</div>
   </div>
 </div>
 
-<!-- ═══ MATLAB/RSM TAB ═══ -->
+<!-- ═══ MATLAB/RSM ═══ -->
 <div id="tab-matlab" style="display:none">
   <div class="card w-top">
-    <div class="card-title"><span class="icon">📐</span> MATLAB / RSM Modelling</div>
+    <div class="card-title"><span>📐</span> MATLAB / RSM Modelling</div>
     <div class="info-box" style="margin-bottom:14px;">
-      Direct implementation of the <strong>Response Surface Methodology</strong> quadratic models
-      from Yıldız et al. (2023), originally computed using Design-Expert® software
-      (equivalent to MATLAB rsm/regress). R² ≥ 0.9985 for all three acids.
+      Response Surface Methodology quadratic models from Yıldız et al. (2023), implemented identically to Design-Expert® software. R² ≥ 0.9985 for FA/AA/PA. IA values are estimated.
     </div>
-
     <div class="acid-strip">
-      <div class="acid-chip active" onclick="selectAcid('PA',this)">Propionic Acid</div>
-      <div class="acid-chip" onclick="selectAcid('AA',this)">Acetic Acid</div>
-      <div class="acid-chip" onclick="selectAcid('FA',this)">Formic Acid</div>
+      <div class="acid-chip active" onclick="selectAcid('PA',this)">Propionic Acid (PA)</div>
+      <div class="acid-chip" onclick="selectAcid('AA',this)">Acetic Acid (AA)</div>
+      <div class="acid-chip" onclick="selectAcid('FA',this)">Formic Acid (FA)</div>
+      <div class="acid-chip" onclick="selectAcid('IA',this)">Itaconic Acid (IA)*</div>
     </div>
-
     <div class="grid2" style="margin-bottom:14px;">
-      <div>
-        <label>Initial Acid Concentration (wt%)</label>
-        <input type="number" id="m-acid" value="5" min="5" max="15" step="0.5"/>
-      </div>
-      <div>
-        <label>HDES Molar Ratio (DecA:Menthol)</label>
-        <input type="number" id="m-hdes" value="0.5" min="0.5" max="1.5" step="0.05"/>
-      </div>
-      <div>
-        <label>TOA Concentration (mol/L)</label>
-        <input type="number" id="m-toa" value="1.9" min="0.1" max="1.9" step="0.05"/>
-      </div>
+      <div><label>Initial Acid Concentration (wt%)</label>
+        <input type="number" id="m-acid" value="5" min="5" max="15" step="0.5"/></div>
+      <div><label>HDES Molar Ratio (DecA:Menthol)</label>
+        <input type="number" id="m-hdes" value="0.5" min="0.5" max="1.5" step="0.05"/></div>
+      <div><label>TOA Concentration (mol/L)</label>
+        <input type="number" id="m-toa" value="1.9" min="0.1" max="1.9" step="0.05"/></div>
       <div style="display:flex;align-items:flex-end;">
-        <button class="btn" onclick="runMATLAB()" style="font-size:.78rem;padding:8px;">
-          📐 Compute RSM / MATLAB
-        </button>
-      </div>
+        <button class="btn" onclick="runMATLAB()" style="font-size:.78rem;padding:8px;">📐 Compute RSM</button></div>
     </div>
-
-    <!-- RSM equation display -->
     <div style="margin-bottom:12px;">
       <div class="section-label">RSM Quadratic Equation (Coded Variables)</div>
-      <div class="matlab-eq" id="matlab-eq">Select an acid and click Compute…</div>
+      <div class="matlab-eq" id="matlab-eq">Select an acid…</div>
     </div>
-
-    <!-- Result -->
     <div id="matlab-result" style="display:none">
       <div class="grid3" id="matlab-metrics" style="margin-bottom:14px;"></div>
       <div id="matlab-anova-wrap"></div>
     </div>
-
-    <!-- ANOVA table section -->
     <div style="margin-top:14px;">
       <div class="section-label">ANOVA Table (from Paper)</div>
       <div id="anova-table-wrap"></div>
     </div>
   </div>
-
-  <!-- RSM 2D contour sweep -->
   <div class="card a-top">
-    <div class="card-title"><span class="icon">🗺️</span> RSM Contour — E% Response Surface</div>
+    <div class="card-title"><span>🗺️</span> RSM Contour — E% Response Surface</div>
     <div class="sens-ctrl">
       <div><label>Acid</label>
         <select id="rsm-acid2" onchange="loadRSMContour()">
-          <option value="PA">PA</option><option value="AA">AA</option><option value="FA">FA</option>
+          <option value="PA">PA</option><option value="AA">AA</option>
+          <option value="FA">FA</option><option value="IA">IA*</option>
         </select></div>
       <div><label>X-axis (coded)</label>
         <select id="rsm-xvar2" onchange="loadRSMContour()">
@@ -622,14 +569,14 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
         </select></div>
     </div>
     <div id="rsm-contour-chart" style="height:420px;"></div>
-    <div class="chart-guide">&#128214; <strong>How to read the contour:</strong> Lines connect points of equal E%. Tightly packed lines = steep change (high sensitivity). Widely spaced = flat region. The top-right corner (high TOA + optimum HDES) typically shows the highest efficiency (dark yellow contour lines).</div>
+    <div class="chart-guide"><strong>How to read:</strong> Contour lines connect equal E% values. Tightly packed lines = steep sensitivity. The top-right region (high TOA + optimum HDES) typically shows the highest efficiency for all acids.</div>
   </div>
 </div>
 
-<!-- ═══ ISOTHERMS TAB ═══ -->
+<!-- ═══ ISOTHERMS ═══ -->
 <div id="tab-isotherms" style="display:none">
   <div class="card t-top">
-    <div class="card-title"><span class="icon">⚗️</span> Adsorption Isotherms</div>
+    <div class="card-title"><span>⚗️</span> Adsorption Isotherms — Langmuir &amp; Freundlich</div>
     <div class="sens-ctrl">
       <div><label>TOA wt%</label>
         <select id="iso-tba">
@@ -638,13 +585,60 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
         </select></div>
       <div><label>DES Ratio</label>
         <select id="iso-des">
-          <option value="1.0">1.0</option><option value="1.5" selected>1.5</option><option value="2.0">2.0</option>
+          <option value="1.0">1.0</option><option value="1.5" selected>1.5</option>
+          <option value="2.0">2.0</option>
         </select></div>
       <button class="btn-sm" onclick="loadIsotherms()">↻ Compute</button>
     </div>
     <div id="iso-params" class="iso-params"></div>
-    <div id="iso-chart" style="height:380px;"></div>
-    <div class="chart-guide">&#128214; <strong>How to read:</strong> The cyan dots are GPR model predictions at different acid concentrations (Ce). The green line is the Langmuir isotherm fit (assumes finite adsorption sites). The dashed purple line is the Freundlich fit (assumes heterogeneous surface). A good fit means the isotherm model describes the extraction equilibrium well.</div>
+    <div id="iso-chart" style="height:400px;"></div>
+    <div id="iso-linear-chart" style="height:360px;margin-top:12px;"></div>
+    <div class="chart-guide"><strong>Top chart:</strong> q vs Ce — equilibrium loading factor vs acid concentration. Dots = GPR predictions; green = Langmuir fit (monolayer assumption); dashed purple = Freundlich (heterogeneous surface). <strong>Bottom chart:</strong> Linearised Langmuir (Ce/q vs Ce) — a straight line confirms Langmuir behaviour.</div>
+  </div>
+</div>
+
+<!-- ═══ CHEMISTRY ═══ -->
+<div id="tab-chemistry" style="display:none">
+  <div class="card pink-top">
+    <div class="card-title"><span>🔬</span> Acid Chemistry &amp; Extraction Mechanism</div>
+    <div class="info-box" style="margin-bottom:14px;">
+      Reactive liquid-liquid extraction using HDES (Hydrophobic Deep Eutectic Solvent) + TOA (Tri-n-octylamine) at 306 K, O/A ratio = 1. Select an acid to view its structure, intermediates, and extraction mechanism.
+    </div>
+    <div class="acid-strip" id="chem-acid-strip">
+      <div class="acid-chip active" onclick="showChemistry('PA',this)">Propionic Acid (PA)</div>
+      <div class="acid-chip" onclick="showChemistry('AA',this)">Acetic Acid (AA)</div>
+      <div class="acid-chip" onclick="showChemistry('FA',this)">Formic Acid (FA)</div>
+      <div class="acid-chip" onclick="showChemistry('IA',this)">Itaconic Acid (IA)*</div>
+    </div>
+    <div id="chem-content"></div>
+  </div>
+</div>
+
+<!-- ═══ BAYESIAN ═══ -->
+<div id="tab-bayesian" style="display:none">
+  <div class="card a-top">
+    <div class="card-title"><span>🎲</span> Bayesian / RSM Optimisation</div>
+    <div class="info-box" style="margin-bottom:14px;">
+      Grid-search optimisation of the paper RSM equations to find maximum extraction efficiency.
+      Select an acid to see optimal operating conditions and next-experiment suggestions.
+    </div>
+    <div class="sens-ctrl">
+      <div><label>Acid</label>
+        <select id="bayes-acid" onchange="loadBayesian()">
+          <option value="PA">Propionic Acid (PA)</option>
+          <option value="AA">Acetic Acid (AA)</option>
+          <option value="FA">Formic Acid (FA)</option>
+          <option value="IA">Itaconic Acid (IA)*</option>
+        </select></div>
+      <button class="btn-sm" onclick="loadBayesian()">↻ Optimise</button>
+    </div>
+    <div id="bayes-loading" class="status-bar" style="display:none"><div class="spinner"></div><span>Computing optimum…</span></div>
+    <div id="bayes-content"></div>
+  </div>
+  <div class="card g-top">
+    <div class="card-title"><span>🗺️</span> Optimisation Landscape</div>
+    <div id="bayes-surface-chart" style="height:460px;"></div>
+    <div class="chart-guide"><strong>How to read:</strong> 3D surface of E% vs TOA and HDES ratio at the optimal acid concentration. The peak (bright yellow) = global optimum. Surrounding plateau shows robustness — flat regions mean small input changes don't affect efficiency much.</div>
   </div>
 </div>
 
@@ -653,47 +647,45 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
 </div><!-- /app -->
 
 <script>
-// ════════════════════════════════════════════════════════════
-// Config
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════
 const API = (() => {
   const h = window.location.hostname;
-  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:8000';
+  if (!h || h === 'localhost' || h === '127.0.0.1') return 'http://localhost:8000';
   return 'https://chem-ai.onrender.com';
 })();
 
 let currentAcid = 'PA';
-let sysAcid = 'PA';   // acid type for ML prediction
+let sysAcid = 'PA';
 
-// ── Model display metadata ──
 const MODEL_META = {
-  RSM:          {color:'#22d3ee', label:'RSM'},
-  RandomForest: {color:'#34d399', label:'Random Forest'},
-  XGBoost:      {color:'#818cf8', label:'XGBoost'},
-  GPR:          {color:'#fbbf24', label:'GPR'},
-  ANN:          {color:'#f472b6', label:'ANN (DL)'},
+  RSM:          {color:'#00d4ff', label:'RSM'},
+  RandomForest: {color:'#00e5a0', label:'Random Forest'},
+  XGBoost:      {color:'#7c6df8', label:'XGBoost'},
+  GPR:          {color:'#f5c518', label:'GPR'},
+  ANN:          {color:'#ff5aaa', label:'ANN (DL)'},
 };
-
-// ── Target metadata ──
 const TARGET_META = {
-  KD:     {label:'Distribution Coeff. (KD)',  unit:'',    cls:'kd',   color:'#22d3ee'},
-  E_pct:  {label:'Extraction Efficiency E%',  unit:'%',   cls:'epct', color:'#34d399'},
-  Z:      {label:'Loading Factor Z',          unit:'',    cls:'z',    color:'#a78bfa'},
-  SF_min: {label:'Min Solvent Factor SF',     unit:'',    cls:'sf',   color:'#fbbf24'},
+  KD:     {label:'Dist. Coeff. (KD)',     unit:'',   cls:'kd',   color:'#00d4ff'},
+  E_pct:  {label:'Extraction Eff. E%',    unit:'%',  cls:'epct', color:'#00e5a0'},
+  Z:      {label:'Loading Factor Z',      unit:'',   cls:'z',    color:'#9980ff'},
+  SF_min: {label:'Min Solvent Factor SF', unit:'',   cls:'sf',   color:'#f5c518'},
 };
 
-// ── Plotly layout defaults ──
-const PLOT_BG = '#0f2035';
-const PLOT_PAPER = '#0b1829';
+const PLOT_BG    = '#0a1628';
+const PLOT_PAPER = '#060e1a';
+
 function plotLayout(extra={}) {
   return Object.assign({
     paper_bgcolor: PLOT_PAPER,
     plot_bgcolor:  PLOT_BG,
-    font:  {color:'#94a3b8', size:11},
-    margin:{t:30,r:20,b:50,l:60},
-    legend:{bgcolor:'rgba(0,0,0,0)',bordercolor:'#1a3356',borderwidth:1},
-    xaxis: {gridcolor:'#1a3356',zerolinecolor:'#1f3d66'},
-    yaxis: {gridcolor:'#1a3356',zerolinecolor:'#1f3d66'},
+    font:  {color:'#8ab4d4', size:11, family:'Segoe UI, system-ui, sans-serif'},
+    margin:{t:40,r:20,b:55,l:65},
+    legend:{bgcolor:'rgba(0,0,0,0)',bordercolor:'#132240',borderwidth:1,font:{size:10}},
+    xaxis: {gridcolor:'#132240',zerolinecolor:'#1a3060',linecolor:'#1a3060',tickfont:{size:10}},
+    yaxis: {gridcolor:'#132240',zerolinecolor:'#1a3060',linecolor:'#1a3060',tickfont:{size:10}},
+    hoverlabel:{bgcolor:'#0f1e38',bordercolor:'#1a3060',font:{size:11}},
   }, extra);
 }
 
@@ -703,35 +695,35 @@ function selectSysAcid(acid, el) {
   el.classList.add('active');
 }
 
-// ════════════════════════════════════════════════════════════
-// Tab switching
-// ════════════════════════════════════════════════════════════
-function showTab(name) {
+// ════════════════════════════════════════
+// TAB SWITCHING
+// ════════════════════════════════════════
+function showTab(name, clickedEl) {
   document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
   document.getElementById('tab-' + name).style.display = 'block';
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  // Lazy-load certain tabs
+  if (clickedEl) clickedEl.classList.add('active');
   if (name === 'accuracy')   loadAccuracy();
   if (name === 'ann')        loadANNArch();
   if (name === 'surface3d')  { load3DSurface(); loadHeatmap(); }
   if (name === 'sensitivity') loadSensitivity();
   if (name === 'matlab')     { renderANOVA(); renderMATLABEq(); loadRSMContour(); }
   if (name === 'isotherms')  loadIsotherms();
+  if (name === 'chemistry')  showChemistry('PA', document.querySelector('#chem-acid-strip .acid-chip'));
+  if (name === 'bayesian')   loadBayesian();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 // PREDICTION
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 async function runPrediction() {
-  const cinPct  = parseFloat(document.getElementById('cin').value);
-  const hdes    = parseFloat(document.getElementById('hdes').value);
-  const toa     = parseFloat(document.getElementById('toa').value);
+  const cinPct = parseFloat(document.getElementById('cin').value);
+  const hdes   = parseFloat(document.getElementById('hdes').value);
+  const toa    = parseFloat(document.getElementById('toa').value);
 
-  // Map paper variables → api schema
-  const Cin          = cinPct / 100;          // wt% → fraction (0.05-0.15)
-  const TBA_pct      = 5 + (toa - 0.1) / (1.9 - 0.1) * 15;  // 5-20
-  const DES_ratio_num = hdes + 0.5;           // 0.5+0.5=1.0 … 1.5+0.5=2.0
+  const Cin           = cinPct / 100;
+  const TBA_pct       = 5 + (toa - 0.1) / 1.8 * 15;
+  const DES_ratio_num = hdes + 0.5;
 
   document.getElementById('predict-btn').disabled = true;
   document.getElementById('status-bar').style.display = 'flex';
@@ -747,19 +739,18 @@ async function runPrediction() {
   } catch(e) {
     document.getElementById('status-msg').textContent = 'API error: ' + e.message;
     console.error(e);
-  } finally {
     document.getElementById('predict-btn').disabled = false;
-    document.getElementById('status-bar').style.display = 'none';
+    return;
   }
+  document.getElementById('predict-btn').disabled = false;
+  document.getElementById('status-bar').style.display = 'none';
 }
 
 function renderResults(data, cinPct, hdes, toa) {
   document.getElementById('results-placeholder').style.display = 'none';
   document.getElementById('results-content').style.display = 'block';
-
   const {predictions, nrtl, in_range} = data;
 
-  // NRTL
   document.getElementById('g-aq').textContent  = nrtl.gamma_aq;
   document.getElementById('g-org').textContent = nrtl.gamma_org;
   document.getElementById('c-tba').textContent = nrtl.C_TBA_molar;
@@ -767,102 +758,83 @@ function renderResults(data, cinPct, hdes, toa) {
     ? '<span class="badge badge-in">✓ In range</span>'
     : '<span class="badge badge-out">⚠ Extrapolated</span>';
 
-  // Find best model for E_pct (highest R² from accuracy cache or use static known best)
   const epctPreds = predictions.E_pct || {};
-  const models = Object.keys(epctPreds).filter(k => !k.endsWith('_std'));
-  // Pick best as model with median value (closest to ensemble mean) or first available
+  const models = Object.keys(epctPreds).filter(k=>!k.endsWith('_std'));
   let bestModel = models[0] || 'RSM';
-  const vals = models.map(m => epctPreds[m]).filter(v => v != null);
-  const mean = vals.reduce((a,b)=>a+b,0) / (vals.length||1);
+  const vals = models.map(m=>epctPreds[m]).filter(v=>v!=null);
+  const mean = vals.reduce((a,b)=>a+b,0)/(vals.length||1);
   let minDiff = Infinity;
-  models.forEach(m => {
-    const diff = Math.abs((epctPreds[m]||0) - mean);
-    if (diff < minDiff) { minDiff = diff; bestModel = m; }
+  models.forEach(m=>{
+    const diff = Math.abs((epctPreds[m]||0)-mean);
+    if(diff<minDiff){minDiff=diff;bestModel=m;}
   });
 
-  // Best banner
-  const bestE  = (predictions.E_pct  || {})[bestModel] ?? '—';
-  const bestKD = (predictions.KD     || {})[bestModel] ?? '—';
-  const bestZ  = (predictions.Z      || {})[bestModel] ?? '—';
+  const bestE  = (predictions.E_pct  ||{})[bestModel] ?? '—';
+  const bestKD = (predictions.KD     ||{})[bestModel] ?? '—';
+  const bestZ  = (predictions.Z      ||{})[bestModel] ?? '—';
 
-  document.getElementById('best-model-name').innerHTML =
-    `👑 ${MODEL_META[bestModel]?.label || bestModel}`;
-  document.getElementById('best-epct').textContent = typeof bestE === 'number' ? bestE.toFixed(2) : bestE;
-  document.getElementById('best-kd').textContent   = typeof bestKD === 'number' ? bestKD.toFixed(3) : bestKD;
-  document.getElementById('best-z').textContent    = typeof bestZ === 'number' ? bestZ.toFixed(4) : bestZ;
+  document.getElementById('best-model-name').innerHTML = `👑 ${MODEL_META[bestModel]?.label||bestModel}`;
+  document.getElementById('best-epct').textContent = typeof bestE==='number' ? bestE.toFixed(2) : bestE;
+  document.getElementById('best-kd').textContent   = typeof bestKD==='number'? bestKD.toFixed(3) : bestKD;
+  document.getElementById('best-z').textContent    = typeof bestZ==='number' ? bestZ.toFixed(4) : bestZ;
   document.getElementById('range-badge').innerHTML = in_range
     ? '<span class="badge badge-in">✓ Within experimental range</span>'
     : '<span class="badge badge-out">⚠ Outside experimental range</span>';
 
-  // Horizontal bar comparison for E%
   const bars = document.getElementById('model-comparison-bars');
   bars.innerHTML = '';
-  const allEvals = models.map(m => ({m, v: epctPreds[m]??0}));
-  const maxV = Math.max(...allEvals.map(x=>x.v), 1);
-  allEvals.sort((a,b)=>b.v-a.v).forEach(({m, v}) => {
-    const pct = (v / 100 * 100).toFixed(0);
-    const isBest = m === bestModel;
-    bars.innerHTML += `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-      <div style="width:110px;font-size:.65rem;color:${isBest?'var(--green)':'var(--muted)'};font-weight:${isBest?700:400};text-align:right;">
-        ${isBest?'👑 ':''}${MODEL_META[m]?.label||m}
-      </div>
+  const allEvals = models.map(m=>({m, v: epctPreds[m]??0}));
+  allEvals.sort((a,b)=>b.v-a.v).forEach(({m,v})=>{
+    const pct = Math.min((v/100*100),100).toFixed(0);
+    const isBest = m===bestModel;
+    bars.innerHTML += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+      <div style="width:110px;font-size:.65rem;color:${isBest?'var(--green)':'var(--muted)'};font-weight:${isBest?700:400};text-align:right;">${isBest?'👑 ':''}${MODEL_META[m]?.label||m}</div>
       <div style="flex:1;background:var(--border);border-radius:4px;height:18px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${isBest?'var(--green)':MODEL_META[m]?.color||'#60a5fa'};
-             border-radius:4px;transition:width .6s;display:flex;align-items:center;padding:0 6px;">
-          <span style="font-size:.62rem;color:#06101e;font-weight:700;">${v.toFixed(2)}%</span>
+        <div style="width:${pct}%;height:100%;background:${isBest?'var(--green)':MODEL_META[m]?.color||'#60a5fa'};border-radius:4px;transition:width .6s;display:flex;align-items:center;padding:0 6px;">
+          <span style="font-size:.62rem;color:#020810;font-weight:700;">${typeof v==='number'?v.toFixed(2):'—'}%</span>
         </div>
       </div>
     </div>`;
   });
 
-  // Prediction cards
   const grid = document.getElementById('pred-grid');
   grid.innerHTML = '';
-  Object.entries(TARGET_META).forEach(([target, meta]) => {
-    const tPreds = predictions[target] || {};
-    const tModels = Object.keys(tPreds).filter(k=>!k.endsWith('_std') && tPreds[k]!=null);
-    if (!tModels.length) return;
-
-    const bestV = tPreds[bestModel] ?? tPreds[tModels[0]];
-    grid.innerHTML += `
-    <div class="pred-card ${meta.cls}">
+  Object.entries(TARGET_META).forEach(([target, meta])=>{
+    const tPreds = predictions[target]||{};
+    const tModels = Object.keys(tPreds).filter(k=>!k.endsWith('_std')&&tPreds[k]!=null);
+    if(!tModels.length) return;
+    grid.innerHTML += `<div class="pred-card ${meta.cls}">
       <div class="pred-label">${target}</div>
       <div class="pred-name">${meta.label}</div>
-      ${tModels.map(m => `
-        <div class="model-row ${m===bestModel?'best':''}">
-          <span class="model-tag ${m===bestModel?'best':''}">${m===bestModel?'👑 ':''}${MODEL_META[m]?.label||m}</span>
-          <span class="model-val" style="color:${m===bestModel?'var(--green)':META_COLOR(m)}">
-            ${(tPreds[m]??'—').toString().substring(0,7)}${meta.unit}
-          </span>
-        </div>`).join('')}
+      ${tModels.map(m=>`<div class="model-row ${m===bestModel?'best':''}">
+        <span class="model-tag ${m===bestModel?'best':''}">${m===bestModel?'👑 ':''}${MODEL_META[m]?.label||m}</span>
+        <span class="model-val" style="color:${m===bestModel?'var(--green)':MODEL_META[m]?.color||'#60a5fa'}">
+          ${String(tPreds[m]??'—').substring(0,7)}${meta.unit}
+        </span>
+      </div>`).join('')}
     </div>`;
   });
 
-  // Multi-target comparison chart (grouped bar)
   const targets = Object.keys(TARGET_META);
   const modelList = ['RSM','RandomForest','XGBoost','GPR','ANN'];
-  const traces = modelList.filter(m => targets.some(t => (predictions[t]||{})[m] != null))
-    .map(m => ({
+  const traces = modelList
+    .filter(m=>targets.some(t=>(predictions[t]||{})[m]!=null))
+    .map(m=>({
       type:'bar', name: MODEL_META[m]?.label||m,
-      x: targets.map(t => TARGET_META[t].label),
-      y: targets.map(t => (predictions[t]||{})[m] ?? null),
-      marker:{color: MODEL_META[m]?.color},
+      x: targets.map(t=>TARGET_META[t].label),
+      y: targets.map(t=>(predictions[t]||{})[m]??null),
+      marker:{color: MODEL_META[m]?.color, line:{color:'rgba(255,255,255,.08)',width:1}},
     }));
-
   Plotly.newPlot('compare-chart', traces,
-    plotLayout({barmode:'group', title:{text:'All Targets — Model Comparison',font:{size:12}},
-      yaxis:{title:'Predicted Value'}}),
+    plotLayout({barmode:'group',
+      title:{text:'All Targets — Model Comparison',font:{size:12,color:'#8ab4d4'}},
+      yaxis:{title:{text:'Predicted Value',font:{size:11}}}}),
     {responsive:true, displayModeBar:false});
 }
 
-function META_COLOR(m) {
-  return MODEL_META[m]?.color || '#60a5fa';
-}
-
-// ════════════════════════════════════════════════════════════
-// ACCURACY TAB
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
+// ACCURACY
+// ════════════════════════════════════════
 async function loadAccuracy() {
   document.getElementById('acc-loading').style.display = 'flex';
   try {
@@ -870,8 +842,7 @@ async function loadAccuracy() {
     const data = await resp.json();
     renderAccuracy(data);
   } catch(e) {
-    document.getElementById('acc-charts').innerHTML =
-      `<div class="info-box">⚠️ Could not load metrics: ${e.message}</div>`;
+    document.getElementById('acc-charts').innerHTML = `<div class="info-box">⚠️ ${e.message}</div>`;
   } finally {
     document.getElementById('acc-loading').style.display = 'none';
   }
@@ -880,402 +851,315 @@ async function loadAccuracy() {
 function renderAccuracy(data) {
   const targets = [...new Set(data.map(d=>d.target))];
   const models  = [...new Set(data.map(d=>d.model))];
-
   const container = document.getElementById('acc-charts');
   container.innerHTML = '';
 
-  // R² chart
-  const r2div = document.createElement('div');
-  r2div.style.height = '300px';
+  const r2div = document.createElement('div'); r2div.style.height='300px';
+  const rmseDiv = document.createElement('div'); rmseDiv.style.height='300px';
   container.appendChild(r2div);
-
-  const rmseDiv = document.createElement('div');
-  rmseDiv.style.height = '300px';
   container.appendChild(rmseDiv);
 
-  // R² grouped bar
-  const r2traces = models.map(m => ({
+  const r2traces = models.map(m=>({
     type:'bar', name: MODEL_META[m]?.label||m,
     x: targets,
-    y: targets.map(t => { const row = data.find(d=>d.model===m&&d.target===t); return row?.r2??null; }),
-    marker:{color: MODEL_META[m]?.color},
-    text: targets.map(t => { const row = data.find(d=>d.model===m&&d.target===t); return row?.r2!=null?row.r2.toFixed(4):''; }),
-    textposition:'outside', textfont:{size:9},
+    y: targets.map(t=>{ const r=data.find(d=>d.model===m&&d.target===t); return r?.r2??null; }),
+    marker:{color: MODEL_META[m]?.color, line:{color:'rgba(255,255,255,.08)',width:1}},
+    text: targets.map(t=>{ const r=data.find(d=>d.model===m&&d.target===t); return r?.r2!=null?r.r2.toFixed(4):''; }),
+    textposition:'outside', textfont:{size:8, color:'#8ab4d4'},
   }));
   Plotly.newPlot(r2div, r2traces,
-    plotLayout({barmode:'group', title:{text:'R² Score (higher=better)',font:{size:12}},
-      yaxis:{title:'R²', range:[0,1.05]}}),
+    plotLayout({barmode:'group',
+      title:{text:'R² Score by Model and Target (higher = better)',font:{size:12,color:'#8ab4d4'}},
+      yaxis:{title:{text:'R²',font:{size:11}},range:[0.9,1.02]}}),
     {responsive:true, displayModeBar:false});
 
-  // RMSE chart
-  const rmseTraces = models.map(m => ({
+  const rmseTraces = models.map(m=>({
     type:'bar', name: MODEL_META[m]?.label||m,
     x: targets,
-    y: targets.map(t => { const row = data.find(d=>d.model===m&&d.target===t); return row?.rmse??null; }),
-    marker:{color: MODEL_META[m]?.color},
+    y: targets.map(t=>{ const r=data.find(d=>d.model===m&&d.target===t); return r?.rmse??null; }),
+    marker:{color: MODEL_META[m]?.color, line:{color:'rgba(255,255,255,.08)',width:1}},
   }));
   Plotly.newPlot(rmseDiv, rmseTraces,
-    plotLayout({barmode:'group', title:{text:'RMSE (lower=better)',font:{size:12}},
-      yaxis:{title:'RMSE'}}),
+    plotLayout({barmode:'group',
+      title:{text:'RMSE by Model and Target (lower = better)',font:{size:12,color:'#8ab4d4'}},
+      yaxis:{title:{text:'RMSE',font:{size:11}}}}),
     {responsive:true, displayModeBar:false});
 
-  // Table
   const tableWrap = document.getElementById('acc-table-wrap');
   let html = `<div class="section-label" style="margin-bottom:8px;">Detailed Metrics Table</div>
   <div class="heat-wrap"><table class="heat-table">
   <thead><tr><th>Model</th>${targets.map(t=>`<th colspan="2">${t}</th>`).join('')}</tr>
   <tr><th></th>${targets.map(()=>'<th>R²</th><th>RMSE</th>').join('')}</tr></thead><tbody>`;
-
-  models.forEach(m => {
+  models.forEach(m=>{
     html += `<tr><td style="color:${MODEL_META[m]?.color};font-weight:700;">${MODEL_META[m]?.label||m}</td>`;
-    targets.forEach(t => {
+    targets.forEach(t=>{
       const row = data.find(d=>d.model===m&&d.target===t);
-      const r2 = row?.r2!=null ? row.r2.toFixed(4) : '—';
+      const r2   = row?.r2!=null   ? row.r2.toFixed(4)   : '—';
       const rmse = row?.rmse!=null ? row.rmse.toFixed(4) : '—';
-      const good = row?.r2 >= 0.95;
+      const good = (row?.r2||0)>=0.95;
       html += `<td style="color:${good?'var(--green)':'var(--warn)'}">${r2}</td><td>${rmse}</td>`;
     });
     html += '</tr>';
   });
-
   html += '</tbody></table></div>';
   tableWrap.innerHTML = html;
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 // ANN ARCHITECTURE
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 async function loadANNArch() {
   try {
     const resp = await fetch(`${API}/ann_architecture`);
     const data = await resp.json();
     renderANNDiagram(data);
   } catch(e) {
-    document.getElementById('ann-diagram').innerHTML =
-      `<div class="info-box">⚠️ ${e.message}</div>`;
+    document.getElementById('ann-diagram').innerHTML = `<div class="info-box">⚠️ ${e.message}</div>`;
   }
 }
 
 function renderANNDiagram(data) {
   const layers = data.layers;
-
-  // Color map by layer type
   const typeColor = {
-    input:     {bg:'#083344', stroke:'#22d3ee', text:'#22d3ee', badge:'#0e7490'},
-    dense:     {bg:'#1e1b4b', stroke:'#818cf8', text:'#818cf8', badge:'#4338ca'},
-    batchnorm: {bg:'#042f2e', stroke:'#2dd4bf', text:'#2dd4bf', badge:'#0f766e'},
-    dropout:   {bg:'#2d1e00', stroke:'#fbbf24', text:'#fbbf24', badge:'#b45309'},
-    output:    {bg:'#052e16', stroke:'#34d399', text:'#34d399', badge:'#15803d'},
+    input:     {bg:'#061d2e', stroke:'#00d4ff', text:'#00d4ff', badge:'#0e6080'},
+    dense:     {bg:'#1a1540', stroke:'#7c6df8', text:'#7c6df8', badge:'#3d2fa0'},
+    batchnorm: {bg:'#041e1e', stroke:'#00d4c8', text:'#00d4c8', badge:'#0a6060'},
+    dropout:   {bg:'#241800', stroke:'#f5c518', text:'#f5c518', badge:'#8a6200'},
+    output:    {bg:'#041a10', stroke:'#00e5a0', text:'#00e5a0', badge:'#0a6030'},
   };
-  const typeLabel = {
-    input:'Input', dense:'Dense', batchnorm:'BatchNorm', dropout:'Dropout', output:'Output'
-  };
-
-  const SVG_W = 800;
-  const ROW_H = 52;
-  const ROW_GAP = 14;  // space for arrow between rows
-  const TOP_PAD = 44;  // title area
-  const n = layers.length;
-  const SVG_H = TOP_PAD + n * (ROW_H + ROW_GAP) + 10;
-
+  const typeLabel = {input:'Input', dense:'Dense', batchnorm:'BatchNorm', dropout:'Dropout', output:'Output'};
+  const SVG_W=800, ROW_H=52, ROW_GAP=14, TOP_PAD=44, n=layers.length;
+  const SVG_H = TOP_PAD + n*(ROW_H+ROW_GAP)+10;
   let svg = `<svg class="ann-svg" viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg" style="font-family:ui-monospace,monospace;">
   <defs>
     <linearGradient id="arrowGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#475569"/>
-      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.5"/>
+      <stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#00d4ff" stop-opacity="0.5"/>
     </linearGradient>
     <marker id="arrowhead" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
-      <polygon points="0 0, 7 3.5, 0 7" fill="#22d3ee" opacity="0.6"/>
+      <polygon points="0 0,7 3.5,0 7" fill="#00d4ff" opacity="0.6"/>
     </marker>
-  </defs>`;
-
-  // Title
-  svg += `<text x="${SVG_W/2}" y="26" text-anchor="middle" fill="#f1f5f9"
-    font-size="14" font-weight="700" letter-spacing="0.3">
+  </defs>
+  <text x="${SVG_W/2}" y="26" text-anchor="middle" fill="#e2ecff" font-size="14" font-weight="700">
     ANN Architecture — ${data.total_params_est.toLocaleString()} params (est.)
   </text>`;
 
-  layers.forEach((layer, i) => {
-    const col = typeColor[layer.type] || typeColor.dense;
-    const rowY = TOP_PAD + i * (ROW_H + ROW_GAP);
-    const midY = rowY + ROW_H / 2;
-
-    // Detect block boundaries for grouping (dense+batchnorm+dropout trio)
-    // Draw a subtle block background if this is the start of a block
-    // We'll just draw per-row backgrounds here
-
-    // ── Row background ──
-    svg += `<rect x="10" y="${rowY}" width="${SVG_W - 20}" height="${ROW_H}" rx="7"
-      fill="${col.bg}" stroke="${col.stroke}" stroke-width="0.6" opacity="0.85"/>`;
-
-    // ── Left type badge (72px wide) ──
-    svg += `<rect x="14" y="${rowY + 6}" width="72" height="${ROW_H - 12}" rx="5"
-      fill="${col.badge}"/>`;
-    svg += `<text x="50" y="${midY + 4}" text-anchor="middle" fill="#fff"
-      font-size="9.5" font-weight="700">${typeLabel[layer.type] || layer.type}</text>`;
-
-    // ── Neuron dots (max 12 shown) ──
-    const maxDots = 12;
-    const dotsStart = 96;
-    const dotR = 5;
-    const dotSpacing = 13;
-    const showDots = Math.min(layer.units, maxDots);
-    for (let d = 0; d < showDots; d++) {
-      svg += `<circle cx="${dotsStart + d * dotSpacing}" cy="${midY}" r="${dotR}"
-        fill="${col.stroke}" opacity="${d < showDots - 1 || layer.units <= maxDots ? '0.82' : '0.4'}"/>`;
+  layers.forEach((layer,i)=>{
+    const col = typeColor[layer.type]||typeColor.dense;
+    const rowY = TOP_PAD + i*(ROW_H+ROW_GAP);
+    const midY = rowY + ROW_H/2;
+    svg += `<rect x="10" y="${rowY}" width="${SVG_W-20}" height="${ROW_H}" rx="7" fill="${col.bg}" stroke="${col.stroke}" stroke-width="0.6" opacity="0.85"/>`;
+    svg += `<rect x="14" y="${rowY+6}" width="72" height="${ROW_H-12}" rx="5" fill="${col.badge}"/>`;
+    svg += `<text x="50" y="${midY+4}" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">${typeLabel[layer.type]||layer.type}</text>`;
+    const maxDots=12, dotsStart=96, dotR=5, dotSpacing=13, showDots=Math.min(layer.units,maxDots);
+    for(let d=0;d<showDots;d++){
+      svg += `<circle cx="${dotsStart+d*dotSpacing}" cy="${midY}" r="${dotR}" fill="${col.stroke}" opacity="0.82"/>`;
     }
-    if (layer.units > maxDots) {
-      const tx = dotsStart + maxDots * dotSpacing + 4;
-      svg += `<text x="${tx}" y="${midY + 4}" fill="${col.text}"
-        font-size="9.5" font-weight="600">×${layer.units}</text>`;
+    if(layer.units>maxDots){
+      const tx=dotsStart+maxDots*dotSpacing+4;
+      svg += `<text x="${tx}" y="${midY+4}" fill="${col.text}" font-size="9.5" font-weight="600">×${layer.units}</text>`;
     }
-
-    // ── Right side: layer name + description ──
-    const labelX = dotsStart + maxDots * dotSpacing + (layer.units > maxDots ? 38 : 8);
-    svg += `<text x="${labelX}" y="${midY - 5}" fill="${col.text}"
-      font-size="10.5" font-weight="700">${layer.name}</text>`;
-    // Parameter hint for dense layers
-    let desc = layer.desc || '';
-    if (layer.type === 'dense' && layer.units) {
-      const prevDense = layers.slice(0, i).reverse().find(l => l.type === 'dense' || l.type === 'input');
-      const prevUnits = prevDense ? prevDense.units : '?';
-      desc = `${layer.units} neurons · ~${(layer.units * (prevUnits + 1)).toLocaleString()} weights`;
+    const labelX = dotsStart+maxDots*dotSpacing+(layer.units>maxDots?38:8);
+    svg += `<text x="${labelX}" y="${midY-5}" fill="${col.text}" font-size="10.5" font-weight="700">${layer.name}</text>`;
+    let desc = layer.desc||'';
+    if(layer.type==='dense'&&layer.units){
+      const prevDense=layers.slice(0,i).reverse().find(l=>l.type==='dense'||l.type==='input');
+      const prevUnits=prevDense?prevDense.units:'?';
+      desc = `${layer.units} neurons · ~${(layer.units*(prevUnits+1)).toLocaleString()} weights`;
     }
-    svg += `<text x="${labelX}" y="${midY + 10}" fill="#94a3b8"
-      font-size="9" font-weight="400">${desc}</text>`;
-
-    // ── Downward arrow between rows ──
-    if (i < layers.length - 1) {
-      const ax = SVG_W / 2;
-      const ay1 = rowY + ROW_H + 1;
-      const ay2 = rowY + ROW_H + ROW_GAP - 2;
-      svg += `<line x1="${ax}" y1="${ay1}" x2="${ax}" y2="${ay2}"
-        stroke="url(#arrowGrad)" stroke-width="1.5" marker-end="url(#arrowhead)"/>`;
+    svg += `<text x="${labelX}" y="${midY+10}" fill="#6080a0" font-size="9">${desc}</text>`;
+    if(i<layers.length-1){
+      const ax=SVG_W/2, ay1=rowY+ROW_H+1, ay2=rowY+ROW_H+ROW_GAP-2;
+      svg += `<line x1="${ax}" y1="${ay1}" x2="${ax}" y2="${ay2}" stroke="url(#arrowGrad)" stroke-width="1.5" marker-end="url(#arrowhead)"/>`;
     }
   });
-
   svg += '</svg>';
-
-  // Legend (rendered as HTML below the SVG)
-  const legendHtml = `<div style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:10px;padding:8px 12px;
-      background:rgba(15,23,42,0.6);border-radius:8px;border:1px solid #1e293b;">
-    <span style="font-size:.72rem;color:#94a3b8;font-weight:600;letter-spacing:.05em;align-self:center;">LEGEND</span>
-    <span style="font-size:.72rem;color:#22d3ee;">&#9632; Input Layer</span>
-    <span style="font-size:.72rem;color:#818cf8;">&#9632; Dense (ELU)</span>
-    <span style="font-size:.72rem;color:#2dd4bf;">&#9632; BatchNorm</span>
-    <span style="font-size:.72rem;color:#fbbf24;">&#9632; Dropout</span>
-    <span style="font-size:.72rem;color:#34d399;">&#9632; Output</span>
+  const legend = `<div style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:10px;padding:8px 12px;background:rgba(10,22,40,0.7);border-radius:8px;border:1px solid #132240;">
+    <span style="font-size:.72rem;color:#4a6080;font-weight:600;align-self:center;">LEGEND</span>
+    <span style="font-size:.72rem;color:#00d4ff;">■ Input</span>
+    <span style="font-size:.72rem;color:#7c6df8;">■ Dense (ELU)</span>
+    <span style="font-size:.72rem;color:#00d4c8;">■ BatchNorm</span>
+    <span style="font-size:.72rem;color:#f5c518;">■ Dropout</span>
+    <span style="font-size:.72rem;color:#00e5a0;">■ Output</span>
   </div>`;
-
-  document.getElementById('ann-diagram').innerHTML = svg + legendHtml;
-
-  // Stats
+  document.getElementById('ann-diagram').innerHTML = svg + legend;
   document.getElementById('ann-info').style.display = 'block';
   const stats = [
-    {v: data.optimizer, l: 'Optimizer'},
-    {v: data.learning_rate, l: 'Learning Rate'},
-    {v: data.loss, l: 'Loss Function'},
-    {v: data.regularisation, l: 'Regularisation'},
-    {v: data.callbacks.join(' | '), l: 'Callbacks'},
-    {v: data.training_data, l: 'Training Data'},
+    {v:data.optimizer,l:'Optimizer'},{v:data.learning_rate,l:'Learning Rate'},
+    {v:data.loss,l:'Loss Function'},{v:data.regularisation,l:'Regularisation'},
+    {v:data.callbacks.join(' | '),l:'Callbacks'},{v:data.training_data,l:'Training Data'},
   ];
-  document.getElementById('ann-stats').innerHTML = stats.map(s =>
-    `<div class="metric-tile"><div class="metric-val" style="font-size:.95rem">${s.v}</div>
-     <div class="metric-lbl">${s.l}</div></div>`).join('');
+  document.getElementById('ann-stats').innerHTML = stats.map(s=>
+    `<div class="metric-tile"><div class="metric-val" style="font-size:.9rem">${s.v}</div><div class="metric-lbl">${s.l}</div></div>`).join('');
 }
 
-// ════════════════════════════════════════════════════════════
-// 3D SURFACE (Paper RSM)
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
+// 3D SURFACE
+// ════════════════════════════════════════
 async function load3DSurface() {
   const acid = document.getElementById('surf-acid').value;
   const xvar = document.getElementById('surf-xvar').value;
   const yvar = document.getElementById('surf-yvar').value;
-
-  if (xvar === yvar) return;
-
-  const fixedParam = ['X1','X2','X3'].find(v => v!==xvar && v!==yvar);
-  const fixedVal = -1; // e.g., low acid conc
-
+  if(xvar===yvar) return;
   try {
-    const url = `${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=25&fixed_X1=${fixedVal}&fixed_X2=${fixedVal}&fixed_X3=1`;
+    const url = `${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=28&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`;
     const resp = await fetch(url);
     const d = await resp.json();
-    if (d.error) return;
-
+    if(d.error) return;
     const trace = {
-      type:'surface',
-      x: d.x_info.vals,
-      y: d.y_info.vals,
-      z: d.z_grid,
-      colorscale: [
-        [0,   '#06101e'],
-        [0.25,'#1e3a5f'],
-        [0.5, '#0ea5e9'],
-        [0.75,'#22d3ee'],
-        [1,   '#34d399'],
+      type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
+      colorscale:[
+        [0,'#03080f'],[0.15,'#061c3c'],[0.35,'#083c6e'],
+        [0.55,'#0068a0'],[0.75,'#00b4d8'],[0.88,'#00d4ff'],[1,'#00e5a0'],
       ],
-      showscale: true,
-      colorbar:{tickfont:{color:'#94a3b8'},title:{text:'E%',font:{color:'#94a3b8'}}},
-      lighting:{diffuse:0.9,specular:0.3,roughness:0.5},
+      showscale:true,
+      colorbar:{tickfont:{color:'#8ab4d4',size:10},title:{text:'E%',font:{color:'#8ab4d4',size:11}},thickness:12},
+      lighting:{diffuse:0.9,specular:0.2,roughness:0.4,ambient:0.5},
+      contours:{z:{show:true,usecolormap:true,highlightcolor:'#00e5a0',project:{z:true}}},
     };
-
     const layout = {
       paper_bgcolor: PLOT_PAPER,
       scene:{
-        bgcolor: PLOT_BG,
-        xaxis:{title: d.x_info.label, titlefont:{color:'#94a3b8'}, tickfont:{color:'#64748b'}, gridcolor:'#1a3356'},
-        yaxis:{title: d.y_info.label, titlefont:{color:'#94a3b8'}, tickfont:{color:'#64748b'}, gridcolor:'#1a3356'},
-        zaxis:{title:'E%',            titlefont:{color:'#94a3b8'}, tickfont:{color:'#64748b'}, gridcolor:'#1a3356'},
-        camera:{eye:{x:1.5,y:-1.5,z:1.2}},
+        bgcolor:'#060e1a',
+        xaxis:{title:{text:d.x_info.label,font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240',zerolinecolor:'#1a3060'},
+        yaxis:{title:{text:d.y_info.label,font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240',zerolinecolor:'#1a3060'},
+        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240'},
+        camera:{eye:{x:1.4,y:-1.4,z:1.1}},
       },
-      margin:{t:20,b:10,l:10,r:10},
-      title:{text:`${acid} — 3D RSM Surface (${xvar} vs ${yvar})`,font:{color:'#f1f5f9',size:13}},
+      margin:{t:30,b:10,l:10,r:10},
+      title:{text:`${acid} — 3D RSM Response Surface (${xvar} vs ${yvar})`,font:{color:'#e2ecff',size:13}},
     };
-
-    Plotly.newPlot('surface3d-chart', [trace], layout, {responsive:true});
-  } catch(e) {
-    console.error('3D surface error', e);
-  }
+    Plotly.newPlot('surface3d-chart',[trace],layout,{responsive:true});
+  } catch(e){console.error('3D surface',e);}
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 // HEATMAP
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 async function loadHeatmap() {
-  const target = document.getElementById('hm-target').value;
-  const model  = document.getElementById('hm-model').value;
-  const xvar   = document.getElementById('hm-xvar').value;
-  const yvar   = document.getElementById('hm-yvar').value;
-  if (xvar === yvar) return;
-
+  const target=document.getElementById('hm-target').value;
+  const model=document.getElementById('hm-model').value;
+  const xvar=document.getElementById('hm-xvar').value;
+  const yvar=document.getElementById('hm-yvar').value;
+  if(xvar===yvar) return;
   try {
     const resp = await fetch(`${API}/matrix?target=${target}&model=${model}&xvar=${xvar}&yvar=${yvar}&steps=12`);
     const d = await resp.json();
-    if (d.error) return;
-
-    const AXIS_LABELS = {
-      Cin: 'Acid Cin (N)', TBA_pct: 'TOA (wt%)', DES_ratio_num: 'DES Ratio'
-    };
-
-    const trace = {
-      type:'heatmap',
-      x: d.x_vals, y: d.y_vals, z: d.z_grid,
+    if(d.error) return;
+    const AXIS_LABELS={Cin:'Acid Cin (N)',TBA_pct:'TOA (wt%)',DES_ratio_num:'DES Ratio'};
+    const trace={
+      type:'heatmap', x:d.x_vals, y:d.y_vals, z:d.z_grid,
       colorscale:'Viridis',
-      colorbar:{tickfont:{color:'#94a3b8'},title:{text:target,font:{color:'#94a3b8'}}},
+      colorbar:{tickfont:{color:'#8ab4d4',size:10},title:{text:target,font:{color:'#8ab4d4',size:11}},thickness:12},
     };
-    Plotly.newPlot('heatmap-chart', [trace],
+    Plotly.newPlot('heatmap-chart',[trace],
       plotLayout({
-        title:{text:`${model} — ${target} Heatmap`,font:{size:12}},
-        xaxis:{title:AXIS_LABELS[xvar]||xvar},
-        yaxis:{title:AXIS_LABELS[yvar]||yvar},
-        margin:{t:40,b:60,l:70,r:20},
-      }),
-      {responsive:true, displayModeBar:false});
-  } catch(e) { console.error(e); }
+        title:{text:`${model} — ${target} Response Heatmap`,font:{size:12,color:'#8ab4d4'}},
+        xaxis:{title:{text:AXIS_LABELS[xvar]||xvar,font:{size:11}}},
+        yaxis:{title:{text:AXIS_LABELS[yvar]||yvar,font:{size:11}}},
+        margin:{t:45,b:65,l:75,r:30},
+      }),{responsive:true,displayModeBar:false});
+  } catch(e){console.error(e);}
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 // SENSITIVITY
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 async function loadSensitivity() {
-  const xvar   = document.getElementById('sens-xvar').value;
-  const target = document.getElementById('sens-target').value;
-
+  const xvar  =document.getElementById('sens-xvar').value;
+  const target=document.getElementById('sens-target').value;
   try {
     const resp = await fetch(`${API}/sensitivity?xvar=${xvar}&target=${target}&steps=15`);
     const rows = await resp.json();
-    if (!rows.length) return;
-
-    const AXIS_LABELS = {
-      Cin:'Acid Cin (N)', TBA_pct:'TOA (wt%)', DES_ratio_num:'DES Ratio'
-    };
-    const xVals = rows.map(r => r[xvar]);
-    const models = ['RSM','RandomForest','XGBoost','GPR','ANN'];
-    const traces = models.filter(m => rows.some(r=>r[m]!=null)).map(m => ({
-      type:'scatter', mode:'lines+markers', name: MODEL_META[m]?.label||m,
-      x: xVals, y: rows.map(r=>r[m]),
-      line:{color:MODEL_META[m]?.color,width:2},
-      marker:{size:5},
-    }));
-
-    Plotly.newPlot('sensitivity-chart', traces,
+    if(!rows.length) return;
+    const AXIS_LABELS={Cin:'Acid Cin (N)',TBA_pct:'TOA (wt%)',DES_ratio_num:'DES Ratio'};
+    const xVals=rows.map(r=>r[xvar]);
+    const models=['RSM','RandomForest','XGBoost','GPR','ANN'];
+    const traces=[];
+    models.filter(m=>rows.some(r=>r[m]!=null)).forEach(m=>{
+      const yVals=rows.map(r=>r[m]);
+      traces.push({
+        type:'scatter',mode:'lines+markers',name:MODEL_META[m]?.label||m,
+        x:xVals, y:yVals,
+        line:{color:MODEL_META[m]?.color,width:2.5},
+        marker:{size:6, symbol:'circle'},
+      });
+      // GPR confidence band
+      if(m==='GPR'){
+        const stdVals=rows.map(r=>r['GPR_std']||0);
+        if(stdVals.some(s=>s>0)){
+          traces.push({
+            type:'scatter',mode:'none',name:'GPR ±1σ',showlegend:false,
+            x:[...xVals,...[...xVals].reverse()],
+            y:[...yVals.map((v,i)=>v+(stdVals[i]||0)),...[...yVals].reverse().map((v,i,a)=>v-(stdVals[a.length-1-i]||0))],
+            fill:'toself',fillcolor:'rgba(245,197,24,0.1)',line:{color:'transparent'},
+          });
+        }
+      }
+    });
+    Plotly.newPlot('sensitivity-chart',traces,
       plotLayout({
-        title:{text:`Sensitivity: ${target} vs ${xvar}`,font:{size:12}},
-        xaxis:{title:AXIS_LABELS[xvar]||xvar},
-        yaxis:{title:target},
-      }),
-      {responsive:true, displayModeBar:false});
-  } catch(e) { console.error(e); }
+        title:{text:`Sensitivity Analysis: ${target} vs ${AXIS_LABELS[xvar]||xvar}`,font:{size:12,color:'#8ab4d4'}},
+        xaxis:{title:{text:AXIS_LABELS[xvar]||xvar,font:{size:11}}},
+        yaxis:{title:{text:target,font:{size:11}}},
+      }),{responsive:true,displayModeBar:false});
+  } catch(e){console.error(e);}
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 // MATLAB / RSM
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 const ANOVA_DATA = {
-  PA: {r2:0.9997,adj_r2:0.9995,adeq:191.66,cv:0.60,fval:4052.47,
-    rows:[
-      ['X1 — Acid conc','20.31','109.88','<0.0001','sig'],
-      ['X2 — HDES ratio','43.39','234.77','<0.0001','sig'],
-      ['X3 — TOA conc','6565.38','35524.72','<0.0001','sig'],
-      ['X1·X2','0.1225','0.663','0.4345','ns'],
-      ['X1·X3','1.39','7.50','0.0209','sig'],
-      ['X2·X3','21.81','118.03','<0.0001','sig'],
-      ['X1²','0.106','0.574','0.4662','ns'],
-      ['X2²','3.68','19.90','0.0012','sig'],
-      ['X3²','29.34','158.76','<0.0001','sig'],
-    ]},
-  AA: {r2:0.9995,adj_r2:0.9991,adeq:143.82,cv:0.96,fval:2320.22,
-    rows:[
-      ['X1 — Acid conc','5.90','15.08','0.0030','sig'],
-      ['X2 — HDES ratio','76.95','196.80','<0.0001','sig'],
-      ['X3 — TOA conc','7983.45','20417.19','<0.0001','sig'],
-      ['X1·X2','0.5202','1.33','0.2756','ns'],
-      ['X1·X3','0.1800','0.460','0.5129','ns'],
-      ['X2·X3','44.84','114.68','<0.0001','sig'],
-      ['X1²','2.07','5.30','0.0441','sig'],
-      ['X2²','0.1012','0.259','0.6220','ns'],
-      ['X3²','35.78','91.49','<0.0001','sig'],
-    ]},
-  FA: {r2:0.9985,adj_r2:0.9972,adeq:80.06,cv:2.39,fval:755.01,
-    rows:[
-      ['X1 — Acid conc','26.70','15.14','0.0030','sig'],
-      ['X2 — HDES ratio','3.87','2.19','0.1694','ns'],
-      ['X3 — TOA conc','11874.23','6731.92','<0.0001','sig'],
-      ['X1·X2','10.79','6.12','0.0329','sig'],
-      ['X1·X3','14.55','8.25','0.0166','sig'],
-      ['X2·X3','2.28','1.29','0.2822','ns'],
-      ['X1²','0.836','0.474','0.5068','ns'],
-      ['X2²','0.0475','0.027','0.8730','ns'],
-      ['X3²','36.31','20.58','0.0011','sig'],
-    ]},
+  PA:{r2:0.9997,adj_r2:0.9995,adeq:191.66,cv:0.60,fval:4052.47,
+    rows:[['X1 — Acid conc','20.31','109.88','<0.0001','sig'],
+          ['X2 — HDES ratio','43.39','234.77','<0.0001','sig'],
+          ['X3 — TOA conc','6565.38','35524.72','<0.0001','sig'],
+          ['X1·X2','0.1225','0.663','0.4345','ns'],['X1·X3','1.39','7.50','0.0209','sig'],
+          ['X2·X3','21.81','118.03','<0.0001','sig'],['X1²','0.106','0.574','0.4662','ns'],
+          ['X2²','3.68','19.90','0.0012','sig'],['X3²','29.34','158.76','<0.0001','sig']]},
+  AA:{r2:0.9995,adj_r2:0.9991,adeq:143.82,cv:0.96,fval:2320.22,
+    rows:[['X1 — Acid conc','5.90','15.08','0.0030','sig'],
+          ['X2 — HDES ratio','76.95','196.80','<0.0001','sig'],
+          ['X3 — TOA conc','7983.45','20417.19','<0.0001','sig'],
+          ['X1·X2','0.5202','1.33','0.2756','ns'],['X1·X3','0.1800','0.460','0.5129','ns'],
+          ['X2·X3','44.84','114.68','<0.0001','sig'],['X1²','2.07','5.30','0.0441','sig'],
+          ['X2²','0.1012','0.259','0.6220','ns'],['X3²','35.78','91.49','<0.0001','sig']]},
+  FA:{r2:0.9985,adj_r2:0.9972,adeq:80.06,cv:2.39,fval:755.01,
+    rows:[['X1 — Acid conc','26.70','15.14','0.0030','sig'],
+          ['X2 — HDES ratio','3.87','2.19','0.1694','ns'],
+          ['X3 — TOA conc','11874.23','6731.92','<0.0001','sig'],
+          ['X1·X2','10.79','6.12','0.0329','sig'],['X1·X3','14.55','8.25','0.0166','sig'],
+          ['X2·X3','2.28','1.29','0.2822','ns'],['X1²','0.836','0.474','0.5068','ns'],
+          ['X2²','0.0475','0.027','0.8730','ns'],['X3²','36.31','20.58','0.0011','sig']]},
+  IA:{r2:0.9960,adj_r2:0.9935,adeq:62.40,cv:3.85,fval:401.30,
+    rows:[['X1 — Acid conc','31.42','12.89','0.0048','sig'],
+          ['X2 — HDES ratio','7.61','3.12','0.1028','ns'],
+          ['X3 — TOA conc','12215.8','5010.2','<0.0001','sig'],
+          ['X1·X2','18.23','7.47','0.0211','sig'],['X1·X3','22.84','9.36','0.0121','sig'],
+          ['X2·X3','4.55','1.87','0.2017','ns'],['X1²','1.05','0.431','0.5249','ns'],
+          ['X2²','0.0892','0.0366','0.8514','ns'],['X3²','46.78','19.17','0.0014','sig']]},
+};
+const RSM_EQ={
+  PA:'Y = 73.64 − 1.43·X1 − 2.08·X2 + 25.62·X3\n    + 0.1237·X1·X2 − 0.4163·X1·X3 + 1.65·X2·X3\n    − 0.1964·X1² − 1.16·X2² − 3.27·X3²',
+  AA:'Y = 66.93 − 0.7680·X1 − 2.77·X2 + 28.25·X3\n    − 0.2550·X1·X2 + 0.15·X1·X3 − 2.37·X2·X3\n    + 0.8682·X1² − 0.1918·X2² − 3.61·X3²',
+  FA:'Y = 56.97 − 1.63·X1 − 0.622·X2 + 34.46·X3\n    − 1.16·X1·X2 + 1.35·X1·X3 − 0.5337·X2·X3\n    + 0.5514·X1² + 0.1314·X2² − 3.63·X3²',
+  IA:'Y = 44.20 − 2.10·X1 − 1.45·X2 + 36.80·X3  [estimated]\n    − 1.50·X1·X2 + 1.60·X1·X3 − 0.75·X2·X3\n    + 0.62·X1² + 0.18·X2² − 4.10·X3²',
 };
 
-const RSM_EQ = {
-  PA: 'Y = 73.64 − 1.43·X1 − 2.08·X2 + 25.62·X3\n    + 0.1237·X1·X2 − 0.4163·X1·X3 + 1.65·X2·X3\n    − 0.1964·X1² − 1.16·X2² − 3.27·X3²',
-  AA: 'Y = 66.93 − 0.7680·X1 − 2.77·X2 + 28.25·X3\n    − 0.2550·X1·X2 + 0.15·X1·X3 − 2.37·X2·X3\n    + 0.8682·X1² − 0.1918·X2² − 3.61·X3²',
-  FA: 'Y = 56.97 − 1.63·X1 − 0.622·X2 + 34.46·X3\n    − 1.16·X1·X2 + 1.35·X1·X3 − 0.5337·X2·X3\n    + 0.5514·X1² + 0.1314·X2² − 3.63·X3²',
-};
-
-function selectAcid(acid, el) {
-  currentAcid = acid;
-  document.querySelectorAll('.acid-chip').forEach(c=>c.classList.remove('active'));
+function selectAcid(acid,el){
+  currentAcid=acid;
+  document.querySelectorAll('#tab-matlab .acid-chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
-  renderMATLABEq();
-  renderANOVA();
+  renderMATLABEq(); renderANOVA();
 }
-
-function renderMATLABEq() {
-  document.getElementById('matlab-eq').textContent =
-    `% ${currentAcid} — Quadratic RSM (Design-Expert / MATLAB)\n` +
-    `% Coded: X1=(acid%-10)/5  X2=(HDES-1)/0.5  X3=(TOA-1)/0.9\n\n` +
+function renderMATLABEq(){
+  document.getElementById('matlab-eq').textContent=
+    `% ${currentAcid} — Quadratic RSM (Design-Expert® / MATLAB)\n`+
+    `% Coded: X1=(acid%-10)/5  X2=(HDES-1)/0.5  X3=(TOA-1)/0.9\n\n`+
     RSM_EQ[currentAcid];
 }
-
-function renderANOVA() {
-  const d = ANOVA_DATA[currentAcid];
-  const html = `
-  <div class="grid3" style="margin-bottom:10px;">
+function renderANOVA(){
+  const d=ANOVA_DATA[currentAcid];
+  const html=`<div class="grid4" style="margin-bottom:10px;">
     <div class="metric-tile"><div class="metric-val">${d.r2}</div><div class="metric-lbl">R²</div></div>
     <div class="metric-tile"><div class="metric-val">${d.adj_r2}</div><div class="metric-lbl">Adj-R²</div></div>
     <div class="metric-tile"><div class="metric-val">${d.adeq}</div><div class="metric-lbl">Adeq. Precision</div></div>
@@ -1283,127 +1167,368 @@ function renderANOVA() {
     <div class="metric-tile"><div class="metric-val">${d.fval}</div><div class="metric-lbl">F-value</div></div>
     <div class="metric-tile"><div class="metric-val">&lt;0.0001</div><div class="metric-lbl">p-value</div></div>
   </div>
-  <div class="heat-wrap">
-  <table class="anova-table">
-  <thead><tr><th>Source</th><th>SS</th><th>F-value</th><th>p-value</th><th>Sig?</th></tr></thead>
-  <tbody>
-  ${d.rows.map(r=>`<tr>
-    <td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td>
-    <td>${r[3]}</td>
-    <td class="${r[4]==='sig'?'sig':'nsig'}">${r[4]==='sig'?'✓ Sig':'—'}</td>
-  </tr>`).join('')}
+  <div class="heat-wrap"><table class="anova-table">
+  <thead><tr><th>Source</th><th>SS</th><th>F-value</th><th>p-value</th><th>Sig?</th></tr></thead><tbody>
+  ${d.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td>
+    <td class="${r[4]==='sig'?'sig':'nsig'}">${r[4]==='sig'?'✓ Sig':'—'}</td></tr>`).join('')}
   </tbody></table></div>`;
-  document.getElementById('anova-table-wrap').innerHTML = html;
+  document.getElementById('anova-table-wrap').innerHTML=html;
 }
 
-async function runMATLAB() {
-  const acid = currentAcid;
-  const acid_pct  = parseFloat(document.getElementById('m-acid').value);
-  const HDES_ratio = parseFloat(document.getElementById('m-hdes').value);
-  const TOA_molL  = parseFloat(document.getElementById('m-toa').value);
-
+async function runMATLAB(){
+  const acid=currentAcid;
+  const acid_pct=parseFloat(document.getElementById('m-acid').value);
+  const HDES_ratio=parseFloat(document.getElementById('m-hdes').value);
+  const TOA_molL=parseFloat(document.getElementById('m-toa').value);
   try {
-    const url = `${API}/matlab_predict?acid=${acid}&acid_pct=${acid_pct}&HDES_ratio=${HDES_ratio}&TOA_molL=${TOA_molL}`;
-    const resp = await fetch(url);
-    const d = await resp.json();
-    if (d.error) { alert(d.error); return; }
-
-    document.getElementById('matlab-result').style.display = 'block';
-    document.getElementById('matlab-metrics').innerHTML = `
+    const url=`${API}/matlab_predict?acid=${acid}&acid_pct=${acid_pct}&HDES_ratio=${HDES_ratio}&TOA_molL=${TOA_molL}`;
+    const resp=await fetch(url);
+    const d=await resp.json();
+    if(d.error){alert(d.error);return;}
+    document.getElementById('matlab-result').style.display='block';
+    document.getElementById('matlab-metrics').innerHTML=`
       <div class="metric-tile"><div class="metric-val" style="color:var(--green)">${d.E_pct}%</div>
-        <div class="metric-lbl">E% (Extraction Efficiency)</div></div>
+        <div class="metric-lbl">E% Extraction Efficiency</div></div>
       <div class="metric-tile"><div class="metric-val">${d.KD}</div>
         <div class="metric-lbl">Distribution Coeff. KD</div></div>
       <div class="metric-tile"><div class="metric-val" style="color:var(--muted)">${d.model_stats.R2}</div>
-        <div class="metric-lbl">Model R²</div></div>
-    `;
-
-    // Update eq display with coded values
-    document.getElementById('matlab-eq').textContent =
-      `% ${acid} — Quadratic RSM\n% Coded inputs:\n` +
-      `X1 = (${acid_pct}-10)/5 = ${d.coded.X1}\n` +
-      `X2 = (${HDES_ratio}-1)/0.5 = ${d.coded.X2}\n` +
-      `X3 = (${TOA_molL}-1)/0.9 = ${d.coded.X3}\n\n` +
-      RSM_EQ[acid] + `\n\n% Result: Y = ${d.E_pct}%`;
-  } catch(e) { console.error(e); }
+        <div class="metric-lbl">Model R²</div></div>`;
+    document.getElementById('matlab-eq').textContent=
+      `% ${acid} — Quadratic RSM\n% Coded inputs:\n`+
+      `X1 = (${acid_pct}−10)/5 = ${d.coded.X1}\n`+
+      `X2 = (${HDES_ratio}−1)/0.5 = ${d.coded.X2}\n`+
+      `X3 = (${TOA_molL}−1)/0.9 = ${d.coded.X3}\n\n`+
+      RSM_EQ[acid]+`\n\n% Result: Y = ${d.E_pct}%`;
+  } catch(e){console.error(e);}
 }
 
-async function loadRSMContour() {
-  const acid = document.getElementById('rsm-acid2').value;
-  const xvar = document.getElementById('rsm-xvar2').value;
-  const yvar = document.getElementById('rsm-yvar2').value;
-  if (xvar === yvar) return;
-
+async function loadRSMContour(){
+  const acid=document.getElementById('rsm-acid2').value;
+  const xvar=document.getElementById('rsm-xvar2').value;
+  const yvar=document.getElementById('rsm-yvar2').value;
+  if(xvar===yvar) return;
   try {
-    const resp = await fetch(`${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=30&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`);
-    const d = await resp.json();
-    if (d.error) return;
-
-    const trace = {
+    const resp=await fetch(`${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=30&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`);
+    const d=await resp.json();
+    if(d.error) return;
+    const trace={
       type:'contour', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
-      colorscale:'Viridis', contours:{showlabels:true,labelfont:{size:9,color:'white'}},
-      colorbar:{tickfont:{color:'#94a3b8'},title:{text:'E%',font:{color:'#94a3b8'}}},
+      colorscale:'Viridis',
+      contours:{showlabels:true,labelfont:{size:9,color:'white'},coloring:'heatmap'},
+      colorbar:{tickfont:{color:'#8ab4d4',size:10},title:{text:'E%',font:{color:'#8ab4d4',size:11}},thickness:12},
+      line:{smoothing:1.2},
     };
-    Plotly.newPlot('rsm-contour-chart', [trace],
+    Plotly.newPlot('rsm-contour-chart',[trace],
       plotLayout({
-        title:{text:`${acid} RSM Contour — E%`,font:{size:12}},
-        xaxis:{title:d.x_info.label},
-        yaxis:{title:d.y_info.label},
-        margin:{t:40,b:60,l:70,r:80},
-      }),
-      {responsive:true, displayModeBar:false});
-  } catch(e) { console.error(e); }
+        title:{text:`${acid} — RSM Contour Plot of E%`,font:{size:12,color:'#8ab4d4'}},
+        xaxis:{title:{text:d.x_info.label,font:{size:11}}},
+        yaxis:{title:{text:d.y_info.label,font:{size:11}}},
+        margin:{t:45,b:65,l:75,r:90},
+      }),{responsive:true,displayModeBar:false});
+  } catch(e){console.error(e);}
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 // ISOTHERMS
-// ════════════════════════════════════════════════════════════
-async function loadIsotherms() {
-  const tba = document.getElementById('iso-tba').value;
-  const des = document.getElementById('iso-des').value;
+// ════════════════════════════════════════
+async function loadIsotherms(){
+  const tba=document.getElementById('iso-tba').value;
+  const des=document.getElementById('iso-des').value;
   try {
-    const resp = await fetch(`${API}/isotherms?TBA_pct=${tba}&DES_ratio_num=${des}`);
-    const d = await resp.json();
-
-    // Params
-    const lp = d.Langmuir_params || {}, fp = d.Freundlich_params || {};
-    document.getElementById('iso-params').innerHTML = `
-      <div class="iso-card"><div class="iso-title">Langmuir</div>
-        <div class="iso-row"><span>Qmax</span><span>${lp.Qmax??'—'}</span></div>
-        <div class="iso-row"><span>b</span><span>${lp.b??'—'}</span></div>
+    const resp=await fetch(`${API}/isotherms?TBA_pct=${tba}&DES_ratio_num=${des}`);
+    const d=await resp.json();
+    const lp=d.Langmuir_params||{}, fp=d.Freundlich_params||{};
+    document.getElementById('iso-params').innerHTML=`
+      <div class="iso-card"><div class="iso-title">Langmuir Model</div>
+        <div class="iso-row"><span>Q<sub>max</sub></span><span>${lp.Qmax??'—'}</span></div>
+        <div class="iso-row"><span>b (L/mol)</span><span>${lp.b??'—'}</span></div>
         <div class="iso-row"><span>R²</span><span>${lp.r2??'—'}</span></div>
       </div>
-      <div class="iso-card"><div class="iso-title">Freundlich</div>
-        <div class="iso-row"><span>Kf</span><span>${fp.Kf??'—'}</span></div>
+      <div class="iso-card"><div class="iso-title">Freundlich Model</div>
+        <div class="iso-row"><span>K<sub>f</sub></span><span>${fp.Kf??'—'}</span></div>
         <div class="iso-row"><span>n</span><span>${fp.n??'—'}</span></div>
         <div class="iso-row"><span>R²</span><span>${fp.r2??'—'}</span></div>
       </div>`;
 
-    const traces = [
-      {type:'scatter',mode:'markers',name:'GPR Data',
-       x:d.Ce,y:d.q,marker:{color:'#22d3ee',size:8}},
+    // Main isotherm chart
+    const traces=[
+      {type:'scatter',mode:'markers',name:'GPR Predictions',
+       x:d.Ce, y:d.q,
+       marker:{color:'#00d4ff',size:9,symbol:'circle',line:{color:'#ffffff',width:1}},},
     ];
-    if (d.Langmuir_curve?.length)
+    if(d.Langmuir_curve?.length)
       traces.push({type:'scatter',mode:'lines',name:'Langmuir Fit',
-        x:d.Ce_smooth,y:d.Langmuir_curve,line:{color:'#34d399',width:2}});
-    if (d.Freundlich_curve?.length)
+        x:d.Ce_smooth, y:d.Langmuir_curve,
+        line:{color:'#00e5a0',width:2.5}});
+    if(d.Freundlich_curve?.length)
       traces.push({type:'scatter',mode:'lines',name:'Freundlich Fit',
-        x:d.Ce_smooth,y:d.Freundlich_curve,line:{color:'#a78bfa',width:2,dash:'dash'}});
+        x:d.Ce_smooth, y:d.Freundlich_curve,
+        line:{color:'#9980ff',width:2.5,dash:'dash'}});
 
-    Plotly.newPlot('iso-chart', traces,
+    Plotly.newPlot('iso-chart',traces,
       plotLayout({
-        title:{text:'Adsorption Isotherms',font:{size:12}},
-        xaxis:{title:'Ce (N) — Equilibrium acid concentration'},
-        yaxis:{title:'Z (Loading factor)'},
-      }),
-      {responsive:true, displayModeBar:false});
-  } catch(e) { console.error(e); }
+        title:{text:'Adsorption Isotherm — q vs Ce',font:{size:12,color:'#8ab4d4'}},
+        xaxis:{title:{text:'C<sub>e</sub> — Equilibrium Acid Concentration (N)',font:{size:11}}},
+        yaxis:{title:{text:'q — Loading Factor Z (mol acid / mol TOA)',font:{size:11}}},
+      }),{responsive:true,displayModeBar:false});
+
+    // Linearised Langmuir: Ce/q vs Ce (straight line confirms Langmuir)
+    if(d.Ce?.length && d.q?.length){
+      const ceq = d.Ce.map((ce,i)=> d.q[i]>0 ? ce/d.q[i] : null).filter(v=>v!==null);
+      const ceX = d.Ce.filter((_,i)=>d.q[i]>0);
+      Plotly.newPlot('iso-linear-chart',
+        [{type:'scatter',mode:'markers+lines',name:'C\u1D49/q vs C\u1D49',
+          x:ceX, y:ceq,
+          marker:{color:'#f5c518',size:7},line:{color:'#f5c518',width:2}}],
+        plotLayout({
+          title:{text:'Linearised Langmuir: C\u1D49/q vs C\u1D49 (slope=1/Q\u2098\u2090\u02E3, intercept=1/(b·Q\u2098\u2090\u02E3))',font:{size:11,color:'#8ab4d4'}},
+          xaxis:{title:{text:'C\u1D49 (N)',font:{size:11}}},
+          yaxis:{title:{text:'C\u1D49/q',font:{size:11}}},
+        }),{responsive:true,displayModeBar:false});
+    }
+  } catch(e){console.error(e);}
 }
 
-// ════════════════════════════════════════════════════════════
-// Init
-// ════════════════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', () => {
+// ════════════════════════════════════════
+// CHEMISTRY
+// ════════════════════════════════════════
+const CHEM_DATA = {
+  PA:{
+    name:'Propionic Acid', formula:'CH\u2083CH\u2082COOH', mw:74.08, pka:'4.87', bp:141.1, mp:-20.5,
+    density:0.993, solubility:'Miscible', logP:0.33, dipole:'1.75 D',
+    color:'#00d4ff',
+    svg:`<svg viewBox="0 0 260 90" xmlns="http://www.w3.org/2000/svg">
+      <text x="8" y="50" font-size="13" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <line x1="44" y1="46" x2="76" y2="46" stroke="#00d4ff" stroke-width="2.5"/>
+      <text x="78" y="50" font-size="13" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="112" y1="46" x2="144" y2="46" stroke="#00d4ff" stroke-width="2.5"/>
+      <text x="148" y="50" font-size="13" fill="#00d4ff" font-family="monospace">C</text>
+      <line x1="157" y1="43" x2="157" y2="18" stroke="#00e5a0" stroke-width="2.5"/>
+      <line x1="161" y1="43" x2="161" y2="18" stroke="#00e5a0" stroke-width="2.5"/>
+      <text x="150" y="14" font-size="13" fill="#00e5a0" font-family="monospace">O</text>
+      <line x1="163" y1="50" x2="188" y2="66" stroke="#4db3ff" stroke-width="2.5"/>
+      <text x="190" y="71" font-size="13" fill="#4db3ff" font-family="monospace">OH</text>
+    </svg>`,
+    mechanism:'Propionic acid (pKa 4.87) transfers from aqueous phase to the HDES-organic phase via proton donation to the TOA nitrogen lone pair. The resulting ion pair [CH₃CH₂COO⁻·TOAH⁺] is stabilised by the DES Thymol:Menthol matrix through H-bonding and van der Waals interactions. KD increases with TOA loading as more extractant sites become available. The 2:1 Thymol:Menthol HDES ratio provides optimal solvation environment.',
+    intermediates:[
+      {name:'Acid-TOA Ion Pair',formula:'[C\u2082H\u2085COO\u207B][TOAH\u207A]',role:'Primary extraction species. Formed by proton transfer from acid to TOA nitrogen.'},
+      {name:'1:1 H-Bond Complex',formula:'C\u2082H\u2085COOH\u00B7TOA',role:'Hydrogen-bonded adduct at low Cin. KD proportional to [TOA].'},
+      {name:'1:2 Overloading',formula:'(C\u2082H\u2085COOH)\u2082\u00B7TOA',role:'At high Cin — reduces selectivity. Avoided by keeping Cin below 0.15 N.'},
+    ],
+    equation:'CH\u2083CH\u2082COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [CH\u2083CH\u2082COO\u207B\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Reactive extraction equilibrium at 306 K, O/A = 1:1, HDES = Thymol:Menthol 2:1',
+  },
+  AA:{
+    name:'Acetic Acid', formula:'CH\u2083COOH', mw:60.05, pka:'4.76', bp:117.9, mp:16.6,
+    density:1.049, solubility:'Miscible', logP:-0.17, dipole:'1.74 D',
+    color:'#00e5a0',
+    svg:`<svg viewBox="0 0 220 90" xmlns="http://www.w3.org/2000/svg">
+      <text x="14" y="50" font-size="13" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <line x1="52" y1="46" x2="94" y2="46" stroke="#00e5a0" stroke-width="2.5"/>
+      <text x="98" y="50" font-size="13" fill="#00e5a0" font-family="monospace">C</text>
+      <line x1="107" y1="43" x2="107" y2="18" stroke="#00e5a0" stroke-width="2.5"/>
+      <line x1="111" y1="43" x2="111" y2="18" stroke="#00e5a0" stroke-width="2.5"/>
+      <text x="100" y="14" font-size="13" fill="#00e5a0" font-family="monospace">O</text>
+      <line x1="113" y1="50" x2="140" y2="66" stroke="#4db3ff" stroke-width="2.5"/>
+      <text x="142" y="71" font-size="13" fill="#4db3ff" font-family="monospace">OH</text>
+    </svg>`,
+    mechanism:'Acetic acid (pKa 4.76) is slightly less extractable than propionic acid due to its smaller hydrophobic chain. The extraction proceeds by ion-pair formation with TOA. Acetic acid also forms dimers in the organic phase via double H-bonds, which affects the loading ratio Z. The DES matrix stabilises the complex through thymol phenol–carbonyl interactions.',
+    intermediates:[
+      {name:'Acetic-TOA Complex',formula:'CH\u2083COO\u207B\u00B7TOAH\u207A',role:'Ion pair complex. Slightly weaker than PA complex due to lower pKa.'},
+      {name:'Acid Dimer',formula:'(CH\u2083COOH)\u2082',role:'Double H-bonded dimer in organic phase. Increases effective Z at high Cin.'},
+      {name:'DES-Acid Solvate',formula:'AcOH\u00B7Thymol',role:'Thymol phenol H-bonds to carbonyl. Stabilises organic phase loading.'},
+    ],
+    equation:'CH\u2083COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [CH\u2083COO\u207B\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Reactive extraction equilibrium at 306 K, O/A = 1:1',
+  },
+  FA:{
+    name:'Formic Acid', formula:'HCOOH', mw:46.03, pka:'3.74', bp:100.8, mp:8.4,
+    density:1.220, solubility:'Miscible', logP:-0.54, dipole:'1.41 D',
+    color:'#f5c518',
+    svg:`<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg">
+      <text x="18" y="50" font-size="13" fill="#8ab4d4" font-family="monospace">H</text>
+      <line x1="34" y1="46" x2="72" y2="46" stroke="#f5c518" stroke-width="2.5"/>
+      <text x="76" y="50" font-size="13" fill="#f5c518" font-family="monospace">C</text>
+      <line x1="85" y1="43" x2="85" y2="18" stroke="#f5c518" stroke-width="2.5"/>
+      <line x1="89" y1="43" x2="89" y2="18" stroke="#f5c518" stroke-width="2.5"/>
+      <text x="78" y="14" font-size="13" fill="#f5c518" font-family="monospace">O</text>
+      <line x1="91" y1="50" x2="118" y2="66" stroke="#4db3ff" stroke-width="2.5"/>
+      <text x="120" y="71" font-size="13" fill="#4db3ff" font-family="monospace">OH</text>
+    </svg>`,
+    mechanism:'Formic acid (pKa 3.74) is the smallest monocarboxylic acid and the most hydrophilic, making it the hardest to extract into the organic phase. Despite a lower pKa (stronger acid), the lack of hydrophobic chain limits TOA complex stability. High TOA concentrations (X3=+1) are essential to achieve acceptable E%. The very small molecular size also limits cooperative H-bonding in the organic phase.',
+    intermediates:[
+      {name:'Formate-TOA Ion Pair',formula:'HCOO\u207B\u00B7TOAH\u207A',role:'Weakest ion pair of the three acids. High TOA needed for good extraction.'},
+      {name:'Formic Acid-TOA Adduct',formula:'HCOOH\u00B7TOA',role:'1:1 H-bond complex. Stability lower than PA or AA complexes.'},
+    ],
+    equation:'HCOOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [HCOO\u207B\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Reactive extraction equilibrium at 306 K. Highest TOA conc (1.9 mol/L) recommended.',
+  },
+  IA:{
+    name:'Itaconic Acid (Estimated)', formula:'HOOCCH\u2082C(=CH\u2082)COOH', mw:130.10,
+    pka:'3.84 / 5.55 (diprotic)', bp:'>200 °C (dec)', mp:167.0,
+    density:1.573, solubility:'8.4 g/100 mL', logP:'-1.22 (hydrophilic)', dipole:'3.5 D (est.)',
+    color:'#9980ff',
+    svg:`<svg viewBox="0 0 280 110" xmlns="http://www.w3.org/2000/svg">
+      <text x="4" y="56" font-size="11" fill="#4db3ff" font-family="monospace">HOOC</text>
+      <line x1="42" y1="51" x2="74" y2="51" stroke="#9980ff" stroke-width="2.5"/>
+      <text x="76" y="56" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="106" y1="51" x2="140" y2="51" stroke="#9980ff" stroke-width="2.5"/>
+      <text x="142" y="56" font-size="11" fill="#9980ff" font-family="monospace">C</text>
+      <line x1="150" y1="49" x2="150" y2="24" stroke="#ff5aaa" stroke-width="2.5"/>
+      <line x1="154" y1="49" x2="154" y2="24" stroke="#ff5aaa" stroke-width="2.5"/>
+      <text x="145" y="20" font-size="11" fill="#ff5aaa" font-family="monospace">CH\u2082</text>
+      <line x1="156" y1="55" x2="192" y2="55" stroke="#9980ff" stroke-width="2.5"/>
+      <text x="194" y="60" font-size="11" fill="#4db3ff" font-family="monospace">COOH</text>
+    </svg>`,
+    mechanism:'Itaconic acid (methylenesuccinic acid) is a diprotic biobased platform chemical. Both carboxylic groups (pKa1=3.84, pKa2=5.55) can in principle react with TOA, but the second dissociation significantly reduces the effective distribution coefficient. High hydrophilicity (logP=−1.22) and the presence of a vinyl group make extraction challenging. RSM coefficients are estimated from structural and pKa trends relative to FA/AA/PA. Higher TOA concentrations are required for adequate extraction. *Values estimated; not from Yıldız et al. (2023).',
+    intermediates:[
+      {name:'Mono-Itaconate-TOA',formula:'[HOOCCH\u2082C(=CH\u2082)COO\u207B]\u00B7TOAH\u207A',role:'Primary extraction species — only one COOH reacts with TOA.'},
+      {name:'Di-TOA Complex',formula:'[TOA\u00B7H\u207A]\u2082\u00B7IA\u00B2\u207B',role:'Only at very high TOA concentrations. Second carboxylate partially ionised.'},
+      {name:'Vinyl-DES Interaction',formula:'IA\u00B7Thymol',role:'Vinyl group (=CH₂) may interact with the DES aromatic ring through π-stacking.'},
+    ],
+    equation:'HOOCCH\u2082C(=CH\u2082)COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [mono-itaconate\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Estimated reactive extraction at 306 K. IA is more hydrophilic; higher TOA needed. *Estimated model.',
+  },
+};
+
+function showChemistry(acid, el){
+  if(!el) return;
+  document.querySelectorAll('#chem-acid-strip .acid-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const d = CHEM_DATA[acid];
+  if(!d) return;
+  const html = `
+  <div class="chem-grid">
+    <div class="mol-box">
+      <div>${d.svg}</div>
+      <div class="mol-formula">${d.formula}</div>
+      <div style="font-size:.75rem;font-weight:700;color:var(--text);margin-top:2px;">${d.name}</div>
+      <table class="prop-table" style="margin-top:8px;">
+        <tr><td>Molar Mass</td><td>${d.mw} g/mol</td></tr>
+        <tr><td>pKa</td><td>${d.pka}</td></tr>
+        <tr><td>Boiling Point</td><td>${d.bp} °C</td></tr>
+        <tr><td>Melting Point</td><td>${d.mp} °C</td></tr>
+        <tr><td>Density</td><td>${d.density} g/mL</td></tr>
+        <tr><td>Water Solubility</td><td>${d.solubility}</td></tr>
+        <tr><td>log P</td><td>${d.logP}</td></tr>
+        <tr><td>Dipole Moment</td><td>${d.dipole}</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="eq-box">
+        <div class="eq-text">${d.equation}</div>
+        <div class="eq-desc">${d.equationDesc}</div>
+      </div>
+      <div class="section-label" style="margin-bottom:8px;">Extraction Mechanism</div>
+      <div class="mech-text">${d.mechanism}</div>
+      <div class="section-label" style="margin-top:14px;margin-bottom:8px;">Key Intermediates</div>
+      <div class="inter-grid">
+        ${d.intermediates.map(inter=>`
+        <div class="inter-card">
+          <div class="inter-name">${inter.name}</div>
+          <div class="inter-formula">${inter.formula}</div>
+          <div class="inter-role">${inter.role}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('chem-content').innerHTML = html;
+}
+
+// ════════════════════════════════════════
+// BAYESIAN OPTIMISATION
+// ════════════════════════════════════════
+async function loadBayesian(){
+  const acid = document.getElementById('bayes-acid').value;
+  document.getElementById('bayes-loading').style.display = 'flex';
+  document.getElementById('bayes-content').innerHTML = '';
+  try {
+    const resp = await fetch(`${API}/bayesian_optimal?acid=${acid}`);
+    const d = await resp.json();
+    if(d.error){ document.getElementById('bayes-content').innerHTML=`<div class="info-box">⚠️ ${d.error}</div>`; return; }
+    renderBayesian(d);
+    loadBayesSurface(acid, d.coded);
+  } catch(e){
+    document.getElementById('bayes-content').innerHTML = `<div class="info-box">⚠️ ${e.message}</div>`;
+  } finally {
+    document.getElementById('bayes-loading').style.display = 'none';
+  }
+}
+
+function renderBayesian(d){
+  const opt = d.optimal;
+  const html = `
+  <div class="bayes-opt-card">
+    <div style="font-size:.65rem;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:12px;">OPTIMAL CONDITIONS — ${d.acid}</div>
+    <div class="grid4" style="margin-bottom:16px;">
+      <div class="metric-tile">
+        <div class="opt-val">${d.E_pct_max}%</div><div class="opt-lbl">Max E% Efficiency</div></div>
+      <div class="metric-tile">
+        <div class="opt-val">${d.KD_max}</div><div class="opt-lbl">Distribution Coeff. KD</div></div>
+      <div class="metric-tile">
+        <div class="opt-val">${opt.acid_pct} wt%</div><div class="opt-lbl">Optimal Acid Conc.</div></div>
+      <div class="metric-tile">
+        <div class="opt-val">${opt.HDES_ratio}</div><div class="opt-lbl">Optimal HDES Ratio</div></div>
+      <div class="metric-tile">
+        <div class="opt-val">${opt.TOA_molL} mol/L</div><div class="opt-lbl">Optimal TOA Conc.</div></div>
+      <div class="metric-tile">
+        <div class="opt-val" style="font-size:1rem;">${d.coded.X1} / ${d.coded.X2} / ${d.coded.X3}</div>
+        <div class="opt-lbl">Coded Variables X1/X2/X3</div></div>
+    </div>
+  </div>
+  <div class="card g-top">
+    <div class="card-title"><span>🔭</span> Next-Experiment Suggestions (RSM Sensitivity Search)</div>
+    <div class="heat-wrap">
+    <table class="next-table">
+      <thead><tr><th>#</th><th>Strategy</th><th>Acid (wt%)</th><th>HDES Ratio</th><th>TOA (mol/L)</th><th>Predicted E%</th></tr></thead>
+      <tbody>
+      ${(d.next_experiments||[]).map(s=>`<tr>
+        <td>${s.rank}</td>
+        <td style="color:var(--text)">${s.label}</td>
+        <td>${s.acid_pct}</td><td>${s.HDES_ratio}</td><td>${s.TOA_molL}</td>
+        <td style="color:${s.predicted_E_pct>=d.E_pct_max*0.95?'var(--green)':'var(--warn)'};font-weight:700;">${s.predicted_E_pct}%</td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+  document.getElementById('bayes-content').innerHTML = html;
+}
+
+async function loadBayesSurface(acid, coded){
+  try {
+    const resp = await fetch(`${API}/matlab_surface?acid=${acid}&xvar=X3&yvar=X2&steps=30&fixed_X1=${coded.X1}&fixed_X2=-1&fixed_X3=1`);
+    const d = await resp.json();
+    if(d.error) return;
+    const trace = {
+      type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
+      colorscale:[
+        [0,'#03080f'],[0.2,'#061c3c'],[0.4,'#083c6e'],
+        [0.6,'#0068a0'],[0.8,'#00b4d8'],[0.9,'#00d4ff'],[1,'#f5c518'],
+      ],
+      showscale:true,
+      colorbar:{tickfont:{color:'#8ab4d4',size:10},title:{text:'E%',font:{color:'#8ab4d4',size:11}},thickness:12},
+      contours:{z:{show:true,usecolormap:true,project:{z:true}}},
+    };
+    const layout = {
+      paper_bgcolor: PLOT_PAPER,
+      scene:{
+        bgcolor:'#060e1a',
+        xaxis:{title:{text:d.x_info.label,font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240'},
+        yaxis:{title:{text:d.y_info.label,font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240'},
+        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240'},
+        camera:{eye:{x:1.4,y:-1.4,z:1.2}},
+      },
+      margin:{t:30,b:10,l:10,r:10},
+      title:{text:`${acid} — Optimisation Landscape (at optimal X1=${coded.X1})`,font:{color:'#e2ecff',size:12}},
+    };
+    Plotly.newPlot('bayes-surface-chart',[trace],layout,{responsive:true});
+  } catch(e){console.error(e);}
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
   renderMATLABEq();
   renderANOVA();
 });
