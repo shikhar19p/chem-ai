@@ -772,6 +772,7 @@ def get_matrix(
     DES_ratio_num: float = Query(1.5),
     Cin: float = Query(0.10),
     TBA_pct: float = Query(10.0),
+    acid_type: str = Query("PA"),
 ):
     x_ranges = {
         "Cin":           np.linspace(0.05, 0.15, steps),
@@ -789,7 +790,7 @@ def get_matrix(
         for xv in x_vals:
             kw = dict(fixed)
             kw[xvar] = float(xv); kw[yvar] = float(yv)
-            preds, _, _, _ = predict_all(**kw)
+            preds, _, _, _ = predict_all(**kw, acid_type=acid_type)
             v = preds.get(target, {}).get(model)
             row.append(round(v, 4) if v is not None else None)
         grid.append(row)
