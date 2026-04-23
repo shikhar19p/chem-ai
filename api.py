@@ -151,31 +151,11 @@ def rsm_predict(acid: str, X1: float, X2: float, X3: float) -> float:
 _models: dict = {}
 _metrics_cache: list = []
 _training_done = threading.Event()
-_training_lock  = threading.Lock()   # prevents two threads training simultaneously
-
-
-def _configure_gpu():
-    """Enable GPU for TensorFlow and log device availability."""
-    try:
-        import tensorflow as tf
-        gpus = tf.config.list_physical_devices('GPU')
-        if gpus:
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-            print(f"[API] GPU enabled: {[g.name for g in gpus]}")
-            return True
-        else:
-            print("[API] No GPU found — training on CPU")
-            return False
-    except Exception as e:
-        print(f"[API] GPU config error: {e}")
-        return False
 
 
 def train_models_in_memory():
     """Train RF, XGBoost, GPR, RSM, ANN on the paper-derived dataset."""
     print("[API] Training all models on thesis data...")
-    _configure_gpu()
     from src.data_generator import generate_synthetic_dataset, load_or_generate
     from src.feature_engineering import add_polynomial_features, prepare_data
     from sklearn.ensemble import RandomForestRegressor
@@ -280,13 +260,6 @@ def train_models_in_memory():
             tf.random.set_seed(42)
             np.random.seed(42)
 
-            use_gpu = bool(tf.config.list_physical_devices('GPU'))
-            batch_size = 32 if use_gpu else 16
-            epochs     = 1000 if use_gpu else 600
-            h1, h2, h3, h4 = (256, 128, 64, 32) if use_gpu else (128, 64, 32, 16)
-            print(f"[API] ANN {target}: {'GPU' if use_gpu else 'CPU'} "
-                  f"arch={h1}-{h2}-{h3}-{h4} batch={batch_size} max_epochs={epochs}")
-
             (X_tr_s3, X_te_s3, y_tr_s3, y_te_s3,
              _, _, y_tr_orig3, y_te_orig3,
              scX3, scY3, feats3) = prepare_data(df, target, feature_set='full', scale=True)
@@ -294,27 +267,27 @@ def train_models_in_memory():
             input_dim = X_tr_s3.shape[1]
             model_ann = keras.Sequential([
                 layers.Input(shape=(input_dim,)),
-                layers.Dense(h1, activation='elu', kernel_initializer='he_normal',
+                layers.Dense(128, activation='elu', kernel_initializer='he_normal',
                              kernel_regularizer=regularizers.l2(1e-4)),
                 layers.BatchNormalization(), layers.Dropout(0.2),
-                layers.Dense(h2, activation='elu', kernel_initializer='he_normal',
+                layers.Dense(64, activation='elu', kernel_initializer='he_normal',
                              kernel_regularizer=regularizers.l2(1e-4)),
                 layers.BatchNormalization(), layers.Dropout(0.2),
-                layers.Dense(h3, activation='elu', kernel_initializer='he_normal'),
+                layers.Dense(32, activation='elu', kernel_initializer='he_normal'),
                 layers.BatchNormalization(),
-                layers.Dense(h4, activation='elu'),
+                layers.Dense(16, activation='elu'),
                 layers.Dense(1, activation='linear'),
             ])
             model_ann.compile(optimizer=keras.optimizers.Adam(1e-3), loss='mse', metrics=['mae'])
 
             cb = [
-                callbacks.EarlyStopping(monitor='val_loss', patience=80,
+                callbacks.EarlyStopping(monitor='val_loss', patience=60,
                                         restore_best_weights=True, verbose=0),
                 callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,
-                                            patience=30, min_lr=1e-6, verbose=0),
+                                            patience=25, min_lr=1e-6, verbose=0),
             ]
             model_ann.fit(X_tr_s3, y_tr_s3, validation_split=0.2,
-                          epochs=epochs, batch_size=batch_size, callbacks=cb, verbose=0)
+                          epochs=600, batch_size=16, callbacks=cb, verbose=0)
 
             y_pred_s3  = model_ann.predict(X_te_s3, verbose=0).ravel()
             y_pred_ann = scY3.inverse_transform(y_pred_s3.reshape(-1,1)).ravel()
@@ -340,41 +313,36 @@ def load_all_models():
     if _models:
         return _models
 
-    with _training_lock:          # only one thread enters training at a time
-        if _models:               # re-check after acquiring lock
-            return _models
+    # Try saved .pkl / .keras files first
+    any_found = False
+    for target in TARGETS:
+        t = {}
+        for ext, key in [('rsm', 'RSM'), ('rf', 'RandomForest'),
+                         ('xgb', 'XGBoost'), ('gpr', 'GPR')]:
+            p = os.path.join(MODELS_DIR, f'{ext}_{target}.pkl')
+            if os.path.exists(p):
+                t[key] = joblib.load(p); any_found = True
+        for ext in ['.keras', '.h5']:
+            p = os.path.join(MODELS_DIR, f'ann_{target}{ext}')
+            if os.path.exists(p):
+                try:
+                    from tensorflow import keras
+                    sp = os.path.join(MODELS_DIR, f'ann_scalers_{target}.pkl')
+                    sc = joblib.load(sp)
+                    t['ANN'] = {'model': keras.models.load_model(p),
+                                'scaler_X': sc['scaler_X'], 'scaler_y': sc['scaler_y'],
+                                'input_dim': sc['scaler_X'].n_features_in_}
+                    any_found = True
+                except Exception:
+                    pass
+                break
+        _models[target] = t
 
-        # Try saved .pkl / .keras files first
-        any_found = False
-        for target in TARGETS:
-            t = {}
-            for ext, key in [('rsm', 'RSM'), ('rf', 'RandomForest'),
-                             ('xgb', 'XGBoost'), ('gpr', 'GPR')]:
-                p = os.path.join(MODELS_DIR, f'{ext}_{target}.pkl')
-                if os.path.exists(p):
-                    t[key] = joblib.load(p); any_found = True
-            for ext in ['.keras', '.h5']:
-                p = os.path.join(MODELS_DIR, f'ann_{target}{ext}')
-                if os.path.exists(p):
-                    try:
-                        from tensorflow import keras
-                        sp = os.path.join(MODELS_DIR, f'ann_scalers_{target}.pkl')
-                        sc = joblib.load(sp)
-                        t['ANN'] = {'model': keras.models.load_model(p),
-                                    'scaler_X': sc['scaler_X'], 'scaler_y': sc['scaler_y'],
-                                    'input_dim': sc['scaler_X'].n_features_in_}
-                        any_found = True
-                    except Exception:
-                        pass
-                    break
-            _models[target] = t
+    if not any_found:
+        _models, _metrics_cache = train_models_in_memory()
 
-        if not any_found:
-            _models, _metrics_cache = train_models_in_memory()
-
-        _training_done.set()
-        print("[API] All models ready.")
-        return _models
+    _training_done.set()
+    return _models
 
 
 @app.on_event("startup")
@@ -427,7 +395,7 @@ def _paper_rsm_fallback(acid_type, Cin, TBA_pct, DES_ratio_num, target):
     if target == 'E_pct': return round(e, 4)
     if target == 'KD':    return round(kd, 4)
     if target == 'Z':     return round(kd * Cin * 0.75, 4)
-    if target == 'SF_min': return round(max(1.0 / kd, 0.05), 4)
+    if target == 'SF_min': return round(max(1.0 / max(kd, 1e-9), 0.05), 4)
     return None
 
 
@@ -446,7 +414,7 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
         preds['E_pct']  = {'RSM': round(e, 4)}
         preds['KD']     = {'RSM': round(kd, 4)}
         preds['Z']      = {'RSM': round(kd * Cin * 0.75, 4)}
-        preds['SF_min'] = {'RSM': round(max(1.0 / kd, 0.05), 4)}
+        preds['SF_min'] = {'RSM': round(max(1.0 / max(kd, 1e-9), 0.05), 4)}
         return preds, ga, go, C_TBA
 
     all_models = load_all_models()
@@ -630,37 +598,39 @@ def ann_architecture():
             input_dim = pkg['input_dim']
             break
 
-    try:
-        import tensorflow as tf
-        use_gpu = bool(tf.config.list_physical_devices('GPU'))
-    except Exception:
-        use_gpu = False
-
-    if use_gpu:
-        arch = [(256,"Dense-1 (ELU)"),(128,"Dense-2 (ELU)"),(64,"Dense-3 (ELU)"),(32,"Dense-4 (ELU)")]
-        params_est = input_dim*256 + 256*128 + 128*64 + 64*32 + 32
-    else:
-        arch = [(128,"Dense-1 (ELU)"),(64,"Dense-2 (ELU)"),(32,"Dense-3 (ELU)"),(16,"Dense-4 (ELU)")]
-        params_est = input_dim*128 + 128*64 + 64*32 + 32*16 + 16
-
-    layers_out = [{"name":"Input","type":"input","units":input_dim,"activation":None,"desc":f"{input_dim} engineered features"}]
-    for units, name in arch:
-        layers_out.append({"name":name,"type":"dense","units":units,"activation":"ELU","desc":"L2 reg + He init"})
-        layers_out.append({"name":f"BatchNorm","type":"batchnorm","units":units,"activation":None,"desc":"Normalise activations"})
-        if units >= (128 if use_gpu else 64):
-            layers_out.append({"name":"Dropout","type":"dropout","units":units,"activation":None,"desc":f"rate={ANN_DROPOUT}"})
-    layers_out.append({"name":"Output","type":"output","units":1,"activation":"linear","desc":"Predicted target value"})
-
+    layers = [
+        {"name": "Input", "type": "input", "units": input_dim,
+         "activation": None, "desc": f"{input_dim} engineered features"},
+        {"name": "Dense-1 (ELU)", "type": "dense", "units": 128,
+         "activation": "ELU", "desc": "L2 reg + He init"},
+        {"name": "BatchNorm-1", "type": "batchnorm", "units": 128,
+         "activation": None, "desc": "Normalise activations"},
+        {"name": "Dropout-1", "type": "dropout", "units": 128,
+         "activation": None, "desc": f"rate={ANN_DROPOUT}"},
+        {"name": "Dense-2 (ELU)", "type": "dense", "units": 64,
+         "activation": "ELU", "desc": "L2 reg + He init"},
+        {"name": "BatchNorm-2", "type": "batchnorm", "units": 64,
+         "activation": None, "desc": "Normalise activations"},
+        {"name": "Dropout-2", "type": "dropout", "units": 64,
+         "activation": None, "desc": f"rate={ANN_DROPOUT}"},
+        {"name": "Dense-3 (ELU)", "type": "dense", "units": 32,
+         "activation": "ELU", "desc": "No dropout"},
+        {"name": "BatchNorm-3", "type": "batchnorm", "units": 32,
+         "activation": None, "desc": "Normalise activations"},
+        {"name": "Dense-4 (ELU)", "type": "dense", "units": 16,
+         "activation": "ELU", "desc": "Final hidden"},
+        {"name": "Output", "type": "output", "units": 1,
+         "activation": "linear", "desc": "Predicted target value"},
+    ]
     return {
-        "layers":          layers_out,
+        "layers":          layers,
         "optimizer":       "Adam",
         "learning_rate":   ANN_LEARNING_RATE,
         "loss":            "MSE",
         "regularisation":  f"L2={ANN_L2}, Dropout={ANN_DROPOUT}",
-        "callbacks":       ["EarlyStopping(patience=80)", "ReduceLROnPlateau"],
-        "total_params_est": params_est,
-        "training_data":   f"240 rows · {'GPU-accelerated (256-128-64-32)' if use_gpu else 'CPU (128-64-32-16)'}",
-        "device":          "GPU" if use_gpu else "CPU",
+        "callbacks":       ["EarlyStopping(patience=60)", "ReduceLROnPlateau"],
+        "total_params_est": input_dim*128 + 128*64 + 64*32 + 32*16 + 16,
+        "training_data":   "240 rows from paper RSM equations (Yıldız et al., 2023)",
     }
 
 
@@ -932,11 +902,9 @@ def get_predicted_vs_actual(target: str = Query("E_pct"), model: str = Query("GP
         df, _ = load_or_generate()
         df = add_polynomial_features(df)
 
-        # Wait up to 10 min for background training to finish
-        if not _training_done.wait(timeout=600):
-            return {"error": "training_in_progress",
-                    "message": "Models are still training — please wait a moment and try again."}
         all_models = load_all_models()
+        if not _training_done.is_set():
+            return {"error": "Models still training"}
 
         results = []
         for _, row in df.iterrows():

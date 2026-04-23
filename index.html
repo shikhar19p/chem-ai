@@ -41,6 +41,14 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 .hbadge{padding:3px 10px;border-radius:5px;font-size:.65rem;font-weight:600;border:1px solid;white-space:nowrap;}
 .hbadge-blue{background:var(--accent-dim);border-color:rgba(37,99,235,.25);color:var(--accent);}
 .hbadge-purple{background:var(--accent2-dim);border-color:rgba(124,58,237,.25);color:var(--accent2);}
+/* ── API Status ── */
+#api-status-btn{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:6px;font-size:.7rem;font-weight:600;border:1px solid var(--border2);background:var(--surface);cursor:pointer;transition:all .2s;white-space:nowrap;}
+#api-status-btn:hover{border-color:var(--accent);background:var(--accent-dim);}
+.api-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .4s;}
+.api-dot.live{background:#10b981;}
+.api-dot.offline{background:#ef4444;}
+.api-dot.checking{background:#f59e0b;animation:pulse-dot .8s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.35;}}
 
 /* ── Layout ── */
 .body{display:flex;flex:1;overflow:hidden;}
@@ -301,6 +309,10 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
   <div class="header-badges">
     <span class="hbadge hbadge-blue">RSM · RF · XGBoost · GPR · ANN</span>
     <span class="hbadge hbadge-purple">API v3.1</span>
+    <button id="api-status-btn" onclick="checkApiStatus(true)" title="Click to recheck API connection">
+      <span class="api-dot checking" id="api-dot"></span>
+      <span id="api-status-label">Checking…</span>
+    </button>
   </div>
 </header>
 
@@ -1073,18 +1085,9 @@ async function loadPredVsActual() {
   try {
     const resp = await fetch(`${API}/predicted_vs_actual?target=${target}&model=${model}`);
     const d = await resp.json();
-    if(d.error==='training_in_progress'||d.error==='Models still training'){
-      statsEl.innerHTML=`<div class="info-box" style="text-align:center;padding:20px;">
-        <div class="spinner" style="margin:0 auto 10px;"></div>
-        <strong>Models are training on the server…</strong><br>
-        <span style="font-size:.7rem;color:var(--muted);">This takes 2–5 min on CPU (Render free tier). Auto-retrying in 15 s.</span>
-      </div>`;
-      setTimeout(loadPredVsActual, 15000);
-      return;
-    }
-    if(d.error){ statsEl.innerHTML=`<div class="info-box">⚠️ ${d.error||d.message}</div>`; return; }
+    if(d.error){ statsEl.innerHTML=`<div class="info-box">⚠️ ${d.error}</div>`; return; }
     const pts = d.points||[];
-    if(!pts.length){ statsEl.innerHTML='<div class="info-box">No data yet — models may still be initialising.</div>'; return; }
+    if(!pts.length){ statsEl.innerHTML='<div class="info-box">No data — models may still be training.</div>'; return; }
 
     const actuals = pts.map(p=>p.actual), preds2 = pts.map(p=>p.predicted);
     const n = pts.length;
@@ -1923,11 +1926,40 @@ async function loadBayesSurface(acid, coded){
 }
 
 // ════════════════════════════════════════
+// ════════════════════════════════════════
+// API STATUS INDICATOR
+// ════════════════════════════════════════
+let _apiOnline = false;
+async function checkApiStatus(manual=false){
+  const dot = document.getElementById('api-dot');
+  const lbl = document.getElementById('api-status-label');
+  if(manual||!_apiOnline){
+    dot.className='api-dot checking';
+    lbl.textContent='Checking…';
+  }
+  try{
+    const r = await fetch(API+'/health',{method:'GET',signal:AbortSignal.timeout(6000)});
+    if(r.ok){
+      _apiOnline=true;
+      dot.className='api-dot live';
+      lbl.textContent='API Live';
+    } else {
+      throw new Error('non-200');
+    }
+  } catch(e){
+    _apiOnline=false;
+    dot.className='api-dot offline';
+    lbl.textContent='API Offline';
+  }
+}
+
 // INIT
 // ════════════════════════════════════════
 window.addEventListener('DOMContentLoaded',()=>{
   renderMATLABEq();
   renderANOVA();
+  checkApiStatus();
+  setInterval(checkApiStatus, 15000);
 });
 </script>
 </body>
