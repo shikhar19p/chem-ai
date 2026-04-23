@@ -151,6 +151,7 @@ def rsm_predict(acid: str, X1: float, X2: float, X3: float) -> float:
 _models: dict = {}
 _metrics_cache: list = []
 _training_done = threading.Event()
+_training_lock  = threading.Lock()   # prevents two threads training simultaneously
 
 
 def _configure_gpu():
@@ -211,14 +212,10 @@ def train_models_in_memory():
                         'r2': round(r2_rf, 4), 'rmse': round(rmse_rf, 4)})
 
         # ── XGBoost ────────────────────────────────────────────────────────
-        import tensorflow as tf
-        _use_gpu = bool(tf.config.list_physical_devices('GPU'))
-        xgb_device = 'cuda' if _use_gpu else 'cpu'
         xgb_m = xgb.XGBRegressor(n_estimators=300, max_depth=5, learning_rate=0.05,
                                    subsample=0.85, colsample_bytree=0.85,
                                    reg_alpha=0.1, reg_lambda=1.0,
-                                   random_state=42, verbosity=0,
-                                   device=xgb_device)
+                                   random_state=42, verbosity=0)
         xgb_m.fit(X_tr, y_tr)
         t_models['XGBoost'] = xgb_m
         r2_xgb = float(xgb_m.score(X_te, y_te))
@@ -283,44 +280,31 @@ def train_models_in_memory():
             tf.random.set_seed(42)
             np.random.seed(42)
 
-            gpus = tf.config.list_physical_devices('GPU')
-            use_gpu = bool(gpus)
+            use_gpu = bool(tf.config.list_physical_devices('GPU'))
             batch_size = 32 if use_gpu else 16
             epochs     = 1000 if use_gpu else 600
-            if use_gpu:
-                print(f"[API] ANN {target}: training on GPU (batch={batch_size}, epochs={epochs})")
+            h1, h2, h3, h4 = (256, 128, 64, 32) if use_gpu else (128, 64, 32, 16)
+            print(f"[API] ANN {target}: {'GPU' if use_gpu else 'CPU'} "
+                  f"arch={h1}-{h2}-{h3}-{h4} batch={batch_size} max_epochs={epochs}")
 
             (X_tr_s3, X_te_s3, y_tr_s3, y_te_s3,
              _, _, y_tr_orig3, y_te_orig3,
              scX3, scY3, feats3) = prepare_data(df, target, feature_set='full', scale=True)
 
             input_dim = X_tr_s3.shape[1]
-            with tf.device('/GPU:0' if use_gpu else '/CPU:0'):
-                model_ann = keras.Sequential([
-                    layers.Input(shape=(input_dim,)),
-                    layers.Dense(256, activation='elu', kernel_initializer='he_normal',
-                                 kernel_regularizer=regularizers.l2(1e-4)),
-                    layers.BatchNormalization(), layers.Dropout(0.2),
-                    layers.Dense(128, activation='elu', kernel_initializer='he_normal',
-                                 kernel_regularizer=regularizers.l2(1e-4)),
-                    layers.BatchNormalization(), layers.Dropout(0.2),
-                    layers.Dense(64, activation='elu', kernel_initializer='he_normal'),
-                    layers.BatchNormalization(),
-                    layers.Dense(32, activation='elu'),
-                    layers.Dense(1, activation='linear'),
-                ]) if use_gpu else keras.Sequential([
-                    layers.Input(shape=(input_dim,)),
-                    layers.Dense(128, activation='elu', kernel_initializer='he_normal',
-                                 kernel_regularizer=regularizers.l2(1e-4)),
-                    layers.BatchNormalization(), layers.Dropout(0.2),
-                    layers.Dense(64, activation='elu', kernel_initializer='he_normal',
-                                 kernel_regularizer=regularizers.l2(1e-4)),
-                    layers.BatchNormalization(), layers.Dropout(0.2),
-                    layers.Dense(32, activation='elu', kernel_initializer='he_normal'),
-                    layers.BatchNormalization(),
-                    layers.Dense(16, activation='elu'),
-                    layers.Dense(1, activation='linear'),
-                ])
+            model_ann = keras.Sequential([
+                layers.Input(shape=(input_dim,)),
+                layers.Dense(h1, activation='elu', kernel_initializer='he_normal',
+                             kernel_regularizer=regularizers.l2(1e-4)),
+                layers.BatchNormalization(), layers.Dropout(0.2),
+                layers.Dense(h2, activation='elu', kernel_initializer='he_normal',
+                             kernel_regularizer=regularizers.l2(1e-4)),
+                layers.BatchNormalization(), layers.Dropout(0.2),
+                layers.Dense(h3, activation='elu', kernel_initializer='he_normal'),
+                layers.BatchNormalization(),
+                layers.Dense(h4, activation='elu'),
+                layers.Dense(1, activation='linear'),
+            ])
             model_ann.compile(optimizer=keras.optimizers.Adam(1e-3), loss='mse', metrics=['mae'])
 
             cb = [
@@ -356,36 +340,41 @@ def load_all_models():
     if _models:
         return _models
 
-    # Try saved .pkl / .keras files first
-    any_found = False
-    for target in TARGETS:
-        t = {}
-        for ext, key in [('rsm', 'RSM'), ('rf', 'RandomForest'),
-                         ('xgb', 'XGBoost'), ('gpr', 'GPR')]:
-            p = os.path.join(MODELS_DIR, f'{ext}_{target}.pkl')
-            if os.path.exists(p):
-                t[key] = joblib.load(p); any_found = True
-        for ext in ['.keras', '.h5']:
-            p = os.path.join(MODELS_DIR, f'ann_{target}{ext}')
-            if os.path.exists(p):
-                try:
-                    from tensorflow import keras
-                    sp = os.path.join(MODELS_DIR, f'ann_scalers_{target}.pkl')
-                    sc = joblib.load(sp)
-                    t['ANN'] = {'model': keras.models.load_model(p),
-                                'scaler_X': sc['scaler_X'], 'scaler_y': sc['scaler_y'],
-                                'input_dim': sc['scaler_X'].n_features_in_}
-                    any_found = True
-                except Exception:
-                    pass
-                break
-        _models[target] = t
+    with _training_lock:          # only one thread enters training at a time
+        if _models:               # re-check after acquiring lock
+            return _models
 
-    if not any_found:
-        _models, _metrics_cache = train_models_in_memory()
+        # Try saved .pkl / .keras files first
+        any_found = False
+        for target in TARGETS:
+            t = {}
+            for ext, key in [('rsm', 'RSM'), ('rf', 'RandomForest'),
+                             ('xgb', 'XGBoost'), ('gpr', 'GPR')]:
+                p = os.path.join(MODELS_DIR, f'{ext}_{target}.pkl')
+                if os.path.exists(p):
+                    t[key] = joblib.load(p); any_found = True
+            for ext in ['.keras', '.h5']:
+                p = os.path.join(MODELS_DIR, f'ann_{target}{ext}')
+                if os.path.exists(p):
+                    try:
+                        from tensorflow import keras
+                        sp = os.path.join(MODELS_DIR, f'ann_scalers_{target}.pkl')
+                        sc = joblib.load(sp)
+                        t['ANN'] = {'model': keras.models.load_model(p),
+                                    'scaler_X': sc['scaler_X'], 'scaler_y': sc['scaler_y'],
+                                    'input_dim': sc['scaler_X'].n_features_in_}
+                        any_found = True
+                    except Exception:
+                        pass
+                    break
+            _models[target] = t
 
-    _training_done.set()
-    return _models
+        if not any_found:
+            _models, _metrics_cache = train_models_in_memory()
+
+        _training_done.set()
+        print("[API] All models ready.")
+        return _models
 
 
 @app.on_event("startup")
@@ -943,9 +932,11 @@ def get_predicted_vs_actual(target: str = Query("E_pct"), model: str = Query("GP
         df, _ = load_or_generate()
         df = add_polynomial_features(df)
 
+        # Wait up to 10 min for background training to finish
+        if not _training_done.wait(timeout=600):
+            return {"error": "training_in_progress",
+                    "message": "Models are still training — please wait a moment and try again."}
         all_models = load_all_models()
-        if not _training_done.is_set():
-            return {"error": "Models still training"}
 
         results = []
         for _, row in df.iterrows():

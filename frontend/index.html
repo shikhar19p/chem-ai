@@ -1073,9 +1073,18 @@ async function loadPredVsActual() {
   try {
     const resp = await fetch(`${API}/predicted_vs_actual?target=${target}&model=${model}`);
     const d = await resp.json();
-    if(d.error){ statsEl.innerHTML=`<div class="info-box">⚠️ ${d.error}</div>`; return; }
+    if(d.error==='training_in_progress'||d.error==='Models still training'){
+      statsEl.innerHTML=`<div class="info-box" style="text-align:center;padding:20px;">
+        <div class="spinner" style="margin:0 auto 10px;"></div>
+        <strong>Models are training on the server…</strong><br>
+        <span style="font-size:.7rem;color:var(--muted);">This takes 2–5 min on CPU (Render free tier). Auto-retrying in 15 s.</span>
+      </div>`;
+      setTimeout(loadPredVsActual, 15000);
+      return;
+    }
+    if(d.error){ statsEl.innerHTML=`<div class="info-box">⚠️ ${d.error||d.message}</div>`; return; }
     const pts = d.points||[];
-    if(!pts.length){ statsEl.innerHTML='<div class="info-box">No data — models may still be training.</div>'; return; }
+    if(!pts.length){ statsEl.innerHTML='<div class="info-box">No data yet — models may still be initialising.</div>'; return; }
 
     const actuals = pts.map(p=>p.actual), preds2 = pts.map(p=>p.predicted);
     const n = pts.length;
