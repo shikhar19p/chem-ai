@@ -984,11 +984,11 @@ function renderResults(data, cinPct, hdes, toa) {
       type:'bar', name: MODEL_META[m]?.label||m,
       x: targets.map(t=>TARGET_META[t].label),
       y: targets.map(t=>(predictions[t]||{})[m]??null),
-      marker:{color: MODEL_META[m]?.color, line:{color:'rgba(255,255,255,.08)',width:1}},
+      marker:{color: MODEL_META[m]?.color, opacity:0.88, line:{color:'rgba(255,255,255,0.6)',width:1.5}},
     }));
   Plotly.newPlot('compare-chart', traces,
-    plotLayout({barmode:'group',
-      title:{text:'All Targets — Model Comparison',font:{size:12,color:'#8ab4d4'}},
+    plotLayout({barmode:'group',bargap:0.18,bargroupgap:0.06,
+      title:{text:'All Targets — Model Comparison',font:{size:12,color:'#0f172a'}},
       yaxis:{title:{text:'Predicted Value',font:{size:11}}}}),
     {responsive:true, displayModeBar:false});
 }
@@ -1029,25 +1029,27 @@ function renderAccuracy(data) {
     type:'bar', name: MODEL_META[m]?.label||m,
     x: targets,
     y: targets.map(t=>{ const r=data.find(d=>d.model===m&&d.target===t); return r?.r2??null; }),
-    marker:{color: MODEL_META[m]?.color, line:{color:'rgba(255,255,255,.08)',width:1}},
-    text: targets.map(t=>{ const r=data.find(d=>d.model===m&&d.target===t); return r?.r2!=null?r.r2.toFixed(4):''; }),
-    textposition:'outside', textfont:{size:8, color:'#8ab4d4'},
+    marker:{color: MODEL_META[m]?.color, opacity:0.88, line:{color:'rgba(255,255,255,0.6)',width:1.5}},
+    text: targets.map(t=>{ const r=data.find(d=>d.model===m&&d.target===t); return r?.r2!=null?r.r2.toFixed(3):''; }),
+    textposition:'outside', textfont:{size:9, color:'#334155'},
   }));
   Plotly.newPlot(r2div, r2traces,
-    plotLayout({barmode:'group',
-      title:{text:'R² Score by Model and Target (higher = better)',font:{size:12,color:'#8ab4d4'}},
-      yaxis:{title:{text:'R²',font:{size:11}},range:[0.9,1.02]}}),
+    plotLayout({barmode:'group', bargap:0.18, bargroupgap:0.06,
+      title:{text:'R² Score by Model and Target (higher = better)',font:{size:12,color:'#0f172a'}},
+      yaxis:{title:{text:'R²',font:{size:11}},range:[0,1.08],dtick:0.2}}),
     {responsive:true, displayModeBar:false});
 
   const rmseTraces = models.map(m=>({
     type:'bar', name: MODEL_META[m]?.label||m,
     x: targets,
     y: targets.map(t=>{ const r=data.find(d=>d.model===m&&d.target===t); return r?.rmse??null; }),
-    marker:{color: MODEL_META[m]?.color, line:{color:'rgba(255,255,255,.08)',width:1}},
+    marker:{color: MODEL_META[m]?.color, opacity:0.88, line:{color:'rgba(255,255,255,0.6)',width:1.5}},
+    text: targets.map(t=>{ const r=data.find(d=>d.model===m&&d.target===t); return r?.rmse!=null?r.rmse.toFixed(4):''; }),
+    textposition:'outside', textfont:{size:9, color:'#334155'},
   }));
   Plotly.newPlot(rmseDiv, rmseTraces,
-    plotLayout({barmode:'group',
-      title:{text:'RMSE by Model and Target (lower = better)',font:{size:12,color:'#8ab4d4'}},
+    plotLayout({barmode:'group', bargap:0.18, bargroupgap:0.06,
+      title:{text:'RMSE by Model and Target (lower = better)',font:{size:12,color:'#0f172a'}},
       yaxis:{title:{text:'RMSE',font:{size:11}}}}),
     {responsive:true, displayModeBar:false});
 
@@ -1337,7 +1339,7 @@ async function loadSensitivity() {
     });
     Plotly.newPlot('sensitivity-chart',traces,
       plotLayout({
-        title:{text:`Sensitivity Analysis: ${target} vs ${AXIS_LABELS[xvar]||xvar}`,font:{size:12,color:'#8ab4d4'}},
+        title:{text:`Sensitivity Analysis: ${target} vs ${AXIS_LABELS[xvar]||xvar}`,font:{size:12,color:'#334155'}},
         xaxis:{title:{text:AXIS_LABELS[xvar]||xvar,font:{size:11}}},
         yaxis:{title:{text:target,font:{size:11}}},
       }),{responsive:true,displayModeBar:false});
@@ -1459,7 +1461,7 @@ async function loadRSMContour(){
     };
     Plotly.newPlot('rsm-contour-chart',[trace],
       plotLayout({
-        title:{text:`${acid} — RSM Contour Plot of E%`,font:{size:12,color:'#8ab4d4'}},
+        title:{text:`${acid} — RSM Contour Plot of E%`,font:{size:12,color:'#334155'}},
         xaxis:{title:{text:d.x_info.label,font:{size:11}}},
         yaxis:{title:{text:d.y_info.label,font:{size:11}}},
         margin:{t:45,b:65,l:75,r:90},
@@ -1507,7 +1509,7 @@ async function loadIsotherms(){
 
     Plotly.newPlot('iso-chart',traces,
       plotLayout({
-        title:{text:'Adsorption Isotherm — q vs Ce',font:{size:12,color:'#8ab4d4'}},
+        title:{text:'Adsorption Isotherm — q vs Ce',font:{size:12,color:'#334155'}},
         xaxis:{title:{text:'C<sub>e</sub> — Equilibrium Acid Concentration (N)',font:{size:11}}},
         yaxis:{title:{text:'q — Loading Factor Z (mol acid / mol TOA)',font:{size:11}}},
       }),{responsive:true,displayModeBar:false});
@@ -1521,7 +1523,7 @@ async function loadIsotherms(){
           x:ceX, y:ceq,
           marker:{color:'#d97706',size:7},line:{color:'#d97706',width:2}}],
         plotLayout({
-          title:{text:'Linearised Langmuir: C\u1D49/q vs C\u1D49 (slope=1/Q\u2098\u2090\u02E3, intercept=1/(b·Q\u2098\u2090\u02E3))',font:{size:11,color:'#8ab4d4'}},
+          title:{text:'Linearised Langmuir: C\u1D49/q vs C\u1D49 (slope=1/Q\u2098\u2090\u02E3, intercept=1/(b·Q\u2098\u2090\u02E3))',font:{size:11,color:'#334155'}},
           xaxis:{title:{text:'C\u1D49 (N)',font:{size:11}}},
           yaxis:{title:{text:'C\u1D49/q',font:{size:11}}},
         }),{responsive:true,displayModeBar:false});
@@ -1538,9 +1540,9 @@ const CHEM_DATA = {
     density:0.993, solubility:'Miscible', logP:0.33, dipole:'1.75 D',
     color:'#00d4ff',
     svg:`<svg viewBox="0 0 260 90" xmlns="http://www.w3.org/2000/svg">
-      <text x="8" y="50" font-size="13" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <text x="8" y="50" font-size="13" fill="#334155" font-family="monospace">CH\u2083</text>
       <line x1="44" y1="46" x2="76" y2="46" stroke="#00d4ff" stroke-width="2.5"/>
-      <text x="78" y="50" font-size="13" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="78" y="50" font-size="13" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="112" y1="46" x2="144" y2="46" stroke="#00d4ff" stroke-width="2.5"/>
       <text x="148" y="50" font-size="13" fill="#00d4ff" font-family="monospace">C</text>
       <line x1="157" y1="43" x2="157" y2="18" stroke="#00e5a0" stroke-width="2.5"/>
@@ -1563,7 +1565,7 @@ const CHEM_DATA = {
     density:1.049, solubility:'Miscible', logP:-0.17, dipole:'1.74 D',
     color:'#00e5a0',
     svg:`<svg viewBox="0 0 220 90" xmlns="http://www.w3.org/2000/svg">
-      <text x="14" y="50" font-size="13" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <text x="14" y="50" font-size="13" fill="#334155" font-family="monospace">CH\u2083</text>
       <line x1="52" y1="46" x2="94" y2="46" stroke="#00e5a0" stroke-width="2.5"/>
       <text x="98" y="50" font-size="13" fill="#00e5a0" font-family="monospace">C</text>
       <line x1="107" y1="43" x2="107" y2="18" stroke="#00e5a0" stroke-width="2.5"/>
@@ -1586,7 +1588,7 @@ const CHEM_DATA = {
     density:1.220, solubility:'Miscible', logP:-0.54, dipole:'1.41 D',
     color:'#f5c518',
     svg:`<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg">
-      <text x="18" y="50" font-size="13" fill="#8ab4d4" font-family="monospace">H</text>
+      <text x="18" y="50" font-size="13" fill="#334155" font-family="monospace">H</text>
       <line x1="34" y1="46" x2="72" y2="46" stroke="#f5c518" stroke-width="2.5"/>
       <text x="76" y="50" font-size="13" fill="#f5c518" font-family="monospace">C</text>
       <line x1="85" y1="43" x2="85" y2="18" stroke="#f5c518" stroke-width="2.5"/>
@@ -1607,11 +1609,11 @@ const CHEM_DATA = {
     name:'Butyric Acid', formula:'CH\u2083(CH\u2082)\u2082COOH', mw:88.11, pka:'4.82', bp:163.7, mp:-5.3,
     density:0.959, solubility:'Miscible', logP:0.79, dipole:'1.65 D', color:'#0891b2',
     svg:`<svg viewBox="0 0 300 90" xmlns="http://www.w3.org/2000/svg">
-      <text x="4" y="50" font-size="12" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <text x="4" y="50" font-size="12" fill="#334155" font-family="monospace">CH\u2083</text>
       <line x1="40" y1="46" x2="70" y2="46" stroke="#0891b2" stroke-width="2.5"/>
-      <text x="72" y="50" font-size="12" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="72" y="50" font-size="12" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="106" y1="46" x2="136" y2="46" stroke="#0891b2" stroke-width="2.5"/>
-      <text x="138" y="50" font-size="12" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="138" y="50" font-size="12" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="172" y1="46" x2="202" y2="46" stroke="#0891b2" stroke-width="2.5"/>
       <text x="204" y="50" font-size="12" fill="#0891b2" font-family="monospace">C</text>
       <line x1="213" y1="43" x2="213" y2="18" stroke="#059669" stroke-width="2.5"/>
@@ -1632,13 +1634,13 @@ const CHEM_DATA = {
     name:'Valeric Acid', formula:'CH\u2083(CH\u2082)\u2083COOH', mw:102.13, pka:'4.84', bp:186.1, mp:-34.5,
     density:0.939, solubility:'4 g/100 mL', logP:1.28, dipole:'1.61 D', color:'#7c3aed',
     svg:`<svg viewBox="0 0 330 90" xmlns="http://www.w3.org/2000/svg">
-      <text x="4" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <text x="4" y="50" font-size="11" fill="#334155" font-family="monospace">CH\u2083</text>
       <line x1="38" y1="46" x2="64" y2="46" stroke="#7c3aed" stroke-width="2.5"/>
-      <text x="66" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="66" y="50" font-size="11" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="98" y1="46" x2="124" y2="46" stroke="#7c3aed" stroke-width="2.5"/>
-      <text x="126" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="126" y="50" font-size="11" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="158" y1="46" x2="184" y2="46" stroke="#7c3aed" stroke-width="2.5"/>
-      <text x="186" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="186" y="50" font-size="11" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="218" y1="46" x2="244" y2="46" stroke="#7c3aed" stroke-width="2.5"/>
       <text x="246" y="50" font-size="11" fill="#7c3aed" font-family="monospace">COOH</text>
     </svg>`,
@@ -1654,7 +1656,7 @@ const CHEM_DATA = {
     name:'Lactic Acid', formula:'CH\u2083CH(OH)COOH', mw:90.08, pka:'3.86', bp:122, mp:18,
     density:1.209, solubility:'Miscible', logP:'-0.72', dipole:'2.5 D', color:'#db2777',
     svg:`<svg viewBox="0 0 280 90" xmlns="http://www.w3.org/2000/svg">
-      <text x="4" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <text x="4" y="50" font-size="11" fill="#334155" font-family="monospace">CH\u2083</text>
       <line x1="38" y1="46" x2="70" y2="46" stroke="#db2777" stroke-width="2.5"/>
       <text x="72" y="50" font-size="11" fill="#db2777" font-family="monospace">CH</text>
       <line x1="92" y1="42" x2="92" y2="18" stroke="#4db3ff" stroke-width="2"/>
@@ -1679,16 +1681,16 @@ const CHEM_DATA = {
     name:'Levulinic Acid', formula:'CH\u2083CO(CH\u2082)\u2082COOH', mw:116.12, pka:'4.59', bp:245, mp:37,
     density:1.134, solubility:'Miscible', logP:0.11, dipole:'2.8 D', color:'#ea580c',
     svg:`<svg viewBox="0 0 310 110" xmlns="http://www.w3.org/2000/svg">
-      <text x="4" y="56" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <text x="4" y="56" font-size="11" fill="#334155" font-family="monospace">CH\u2083</text>
       <line x1="38" y1="51" x2="68" y2="51" stroke="#ea580c" stroke-width="2.5"/>
       <text x="70" y="56" font-size="11" fill="#ea580c" font-family="monospace">C</text>
       <line x1="79" y1="48" x2="79" y2="23" stroke="#ea580c" stroke-width="2.5"/>
       <line x1="83" y1="48" x2="83" y2="23" stroke="#ea580c" stroke-width="2.5"/>
       <text x="72" y="19" font-size="11" fill="#ea580c" font-family="monospace">O</text>
       <line x1="85" y1="55" x2="115" y2="55" stroke="#ea580c" stroke-width="2.5"/>
-      <text x="117" y="60" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="117" y="60" font-size="11" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="149" y1="55" x2="179" y2="55" stroke="#ea580c" stroke-width="2.5"/>
-      <text x="181" y="60" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="181" y="60" font-size="11" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="213" y1="55" x2="243" y2="55" stroke="#ea580c" stroke-width="2.5"/>
       <text x="245" y="60" font-size="11" fill="#ea580c" font-family="monospace">COOH</text>
     </svg>`,
@@ -1708,7 +1710,7 @@ const CHEM_DATA = {
     svg:`<svg viewBox="0 0 280 110" xmlns="http://www.w3.org/2000/svg">
       <text x="4" y="56" font-size="11" fill="#4db3ff" font-family="monospace">HOOC</text>
       <line x1="42" y1="51" x2="74" y2="51" stroke="#9980ff" stroke-width="2.5"/>
-      <text x="76" y="56" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="76" y="56" font-size="11" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="106" y1="51" x2="140" y2="51" stroke="#9980ff" stroke-width="2.5"/>
       <text x="142" y="56" font-size="11" fill="#9980ff" font-family="monospace">C</text>
       <line x1="150" y1="49" x2="150" y2="24" stroke="#ff5aaa" stroke-width="2.5"/>
@@ -1732,9 +1734,9 @@ const CHEM_DATA = {
     svg:`<svg viewBox="0 0 290 90" xmlns="http://www.w3.org/2000/svg">
       <text x="4" y="50" font-size="11" fill="#4db3ff" font-family="monospace">HOOC</text>
       <line x1="42" y1="46" x2="74" y2="46" stroke="#0d9488" stroke-width="2.5"/>
-      <text x="76" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="76" y="50" font-size="11" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="108" y1="46" x2="140" y2="46" stroke="#0d9488" stroke-width="2.5"/>
-      <text x="142" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="142" y="50" font-size="11" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="174" y1="46" x2="206" y2="46" stroke="#0d9488" stroke-width="2.5"/>
       <text x="208" y="50" font-size="11" fill="#4db3ff" font-family="monospace">COOH</text>
     </svg>`,
@@ -1774,7 +1776,7 @@ const CHEM_DATA = {
     svg:`<svg viewBox="0 0 330 130" xmlns="http://www.w3.org/2000/svg">
       <text x="4" y="55" font-size="10" fill="#4db3ff" font-family="monospace">HOOC</text>
       <line x1="40" y1="50" x2="70" y2="50" stroke="#15803d" stroke-width="2.5"/>
-      <text x="72" y="55" font-size="10" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="72" y="55" font-size="10" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="100" y1="50" x2="130" y2="50" stroke="#15803d" stroke-width="2.5"/>
       <text x="132" y="55" font-size="10" fill="#15803d" font-family="monospace">C</text>
       <line x1="141" y1="47" x2="141" y2="22" stroke="#4db3ff" stroke-width="2"/>
@@ -1782,7 +1784,7 @@ const CHEM_DATA = {
       <line x1="145" y1="55" x2="175" y2="55" stroke="#15803d" stroke-width="2.5"/>
       <text x="143" y="72" font-size="9" fill="#4db3ff" font-family="monospace">COOH</text>
       <line x1="141" y1="59" x2="141" y2="78" stroke="#4db3ff" stroke-width="2"/>
-      <text x="177" y="60" font-size="10" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <text x="177" y="60" font-size="10" fill="#334155" font-family="monospace">CH\u2082</text>
       <line x1="207" y1="55" x2="237" y2="55" stroke="#15803d" stroke-width="2.5"/>
       <text x="239" y="60" font-size="10" fill="#4db3ff" font-family="monospace">COOH</text>
     </svg>`,
