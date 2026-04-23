@@ -4,56 +4,127 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>HDES Reactive Extraction — Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <style>
 :root{
-  --bg:#03080f;--surface:#060e1a;--card:#0a1628;--card2:#0f1e38;
-  --border:#132240;--border2:#1a3060;
-  --accent:#00d4ff;--accent2:#7c6df8;--accent3:#00e5a0;
-  --warn:#f5c518;--danger:#ff5757;--pink:#ff5aaa;--orange:#ff8c42;
-  --text:#e2ecff;--muted:#4a6080;--muted2:#1e3050;
-  --green:#00e5a0;--blue:#4db3ff;--purple:#9980ff;--teal:#00d4c8;
-  --radius:10px;
+  --bg:#0c1424;--surface:#111d33;--card:#162038;--card2:#1d2d47;
+  --border:#253650;--border2:#2e4268;
+  --accent:#38bdf8;--accent2:#818cf8;
+  --accent-dim:rgba(56,189,248,.1);--accent2-dim:rgba(129,140,248,.1);
+  --green:#34d399;--warn:#fbbf24;--danger:#f87171;
+  --orange:#fb923c;--purple:#a78bfa;--teal:#2dd4bf;--pink:#f472b6;--blue:#60a5fa;
+  --text:#e8f0fe;--text2:#b8ccec;--muted:#6b82a0;--muted2:#253650;
+  --radius:8px;--shadow:0 2px 12px rgba(0,0,0,.4);--shadow-lg:0 6px 28px rgba(0,0,0,.5);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;font-size:14px;line-height:1.5;}
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--surface);}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 .app{display:flex;flex-direction:column;min-height:100vh;}
 
-/* Header */
-.header{background:linear-gradient(135deg,#020810 0%,#071830 50%,#020810 100%);
-  border-bottom:1px solid var(--border2);padding:12px 24px;
-  display:flex;align-items:center;gap:16px;box-shadow:0 4px 24px rgba(0,0,0,.6);}
-.header-logo{width:44px;height:44px;background:linear-gradient(135deg,var(--accent),var(--accent2));
-  border-radius:12px;display:flex;align-items:center;justify-content:center;
-  font-size:22px;box-shadow:0 0 20px rgba(0,212,255,.3);flex-shrink:0;}
-.header-text h1{font-size:1.15rem;font-weight:700;color:var(--text);}
+/* ── Header ── */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;
+  display:flex;align-items:center;gap:16px;height:58px;position:sticky;top:0;z-index:50;
+  box-shadow:var(--shadow);}
+.header-logo{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;}
+.header-text h1{font-size:1rem;font-weight:700;color:var(--text);letter-spacing:-.01em;}
 .header-text p{font-size:.7rem;color:var(--muted);margin-top:1px;}
-.header-badges{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
-.hbadge{padding:3px 10px;border-radius:20px;font-size:.65rem;font-weight:700;border:1px solid;white-space:nowrap;}
-.hbadge-blue{background:rgba(0,212,255,.1);border-color:var(--accent);color:var(--accent);}
-.hbadge-purple{background:rgba(124,109,248,.1);border-color:var(--accent2);color:var(--accent2);}
+.header-divider{width:1px;height:28px;background:var(--border);margin:0 4px;}
+.header-badges{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.hbadge{padding:3px 10px;border-radius:5px;font-size:.65rem;font-weight:600;border:1px solid;white-space:nowrap;letter-spacing:.02em;}
+.hbadge-blue{background:var(--accent-dim);border-color:rgba(56,189,248,.25);color:var(--accent);}
+.hbadge-purple{background:var(--accent2-dim);border-color:rgba(129,140,248,.25);color:var(--accent2);}
 
-/* Layout */
+/* ── Layout ── */
 .body{display:flex;flex:1;overflow:hidden;}
-.sidebar{width:280px;min-width:280px;background:var(--surface);border-right:1px solid var(--border);
-  padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
-.content{flex:1;overflow-y:auto;padding:20px;background:var(--bg);}
+.sidebar{width:272px;min-width:272px;background:var(--surface);border-right:1px solid var(--border);
+  padding:20px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+.content{flex:1;overflow-y:auto;padding:24px;background:var(--bg);}
 
-/* Tabs */
-.tabs{display:flex;gap:3px;margin-bottom:18px;background:var(--surface);
-  padding:4px;border-radius:var(--radius);border:1px solid var(--border);flex-wrap:wrap;}
-.tab{flex:1;padding:7px 5px;text-align:center;font-size:.66rem;font-weight:600;
-  color:var(--muted);cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap;}
-.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#020810;box-shadow:0 2px 14px rgba(0,212,255,.3);}
-.tab:hover:not(.active){background:var(--card);color:var(--text);}
+/* ── Sidebar sections ── */
+.section-label{font-size:.65rem;font-weight:700;color:var(--muted);
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;gap:6px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.sidebar-section{display:flex;flex-direction:column;gap:14px;}
+label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:5px;font-weight:500;}
+.slider-label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.slider-label-row label{margin:0;}
+.val-display{color:var(--accent);font-weight:700;font-size:.82rem;background:var(--accent-dim);
+  padding:1px 7px;border-radius:4px;border:1px solid rgba(56,189,248,.2);}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;height:4px;
+  -webkit-appearance:none;appearance:none;background:var(--border2);border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 0 2px rgba(56,189,248,.2);}
+.slider-row{display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-top:4px;}
+select,input[type=number]{width:100%;background:var(--card);border:1px solid var(--border2);
+  color:var(--text);border-radius:var(--radius);padding:7px 10px;font-size:.77rem;
+  font-family:inherit;outline:none;transition:border-color .15s;}
+select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.1);}
 
-/* Cards */
+/* ── Acid chips ── */
+.acid-strip{display:flex;gap:6px;flex-wrap:wrap;}
+.acid-chip{padding:5px 14px;border-radius:6px;font-size:.72rem;font-weight:600;
+  cursor:pointer;border:1px solid var(--border2);background:var(--card2);color:var(--muted);
+  transition:all .15s;letter-spacing:.02em;}
+.acid-chip.active{background:var(--accent-dim);border-color:rgba(56,189,248,.4);color:var(--accent);}
+.acid-chip:hover:not(.active){border-color:var(--border2);color:var(--text);background:var(--card2);}
+.acid-note{font-size:.63rem;color:var(--muted);margin-top:6px;line-height:1.5;}
+
+/* ── Buttons ── */
+.btn{width:100%;padding:10px;background:var(--accent);color:#0c1424;
+  font-weight:700;font-size:.82rem;border:none;border-radius:var(--radius);
+  cursor:pointer;transition:all .15s;font-family:inherit;letter-spacing:.01em;}
+.btn:hover{background:#7dd3fc;transform:translateY(-1px);box-shadow:0 4px 16px rgba(56,189,248,.3);}
+.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-sm{padding:5px 12px;font-size:.7rem;background:var(--card2);color:var(--accent);
+  border:1px solid var(--border2);border-radius:6px;cursor:pointer;font-weight:600;
+  width:auto;font-family:inherit;transition:all .15s;}
+.btn-sm:hover{border-color:rgba(56,189,248,.4);background:var(--accent-dim);}
+
+/* ── Status ── */
+.status-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  font-size:.71rem;color:var(--muted);}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
+
+/* ── NRTL box ── */
+.nrtl-box{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px;overflow:hidden;}
+.nrtl-row{display:flex;justify-content:space-between;align-items:center;
+  font-size:.71rem;padding:5px 0;border-bottom:1px solid var(--border);}
+.nrtl-row:last-child{border-bottom:none;padding-bottom:0;}
+.nrtl-row span:first-child{color:var(--muted);}
+.nrtl-row span:last-child{color:var(--accent);font-weight:600;}
+
+/* ── Info / tip box ── */
+.info-box{background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:0 var(--radius) var(--radius) 0;padding:10px 14px;
+  font-size:.71rem;color:var(--text2);line-height:1.6;}
+.info-box strong{color:var(--accent);}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;margin-bottom:22px;background:var(--surface);
+  padding:4px;border-radius:var(--radius);border:1px solid var(--border);}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:.67rem;font-weight:600;
+  color:var(--muted);cursor:pointer;border-radius:6px;transition:all .15s;
+  white-space:nowrap;letter-spacing:.02em;}
+.tab.active{background:var(--card);color:var(--accent);
+  box-shadow:var(--shadow);border:1px solid var(--border);}
+.tab:hover:not(.active){color:var(--text2);background:rgba(255,255,255,.03);}
+
+/* ── Cards ── */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:16px;margin-bottom:14px;}
+  padding:20px;margin-bottom:16px;}
 .card.a-top{border-top:2px solid var(--accent);}
 .card.g-top{border-top:2px solid var(--green);}
 .card.p-top{border-top:2px solid var(--purple);}
@@ -61,187 +132,155 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .card.t-top{border-top:2px solid var(--teal);}
 .card.o-top{border-top:2px solid var(--orange);}
 .card.pink-top{border-top:2px solid var(--pink);}
-.card-title{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:12px;
-  display:flex;align-items:center;gap:8px;}
-
-/* Forms */
-.section-label{font-size:.62rem;font-weight:700;color:var(--muted);
-  letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
-label{display:block;font-size:.71rem;color:var(--muted);margin-bottom:3px;font-weight:500;}
-select,input[type=number]{width:100%;background:var(--card);border:1px solid var(--border2);
-  color:var(--text);border-radius:6px;padding:6px 8px;font-size:.77rem;outline:none;
-  transition:border-color .2s;}
-select:focus,input:focus{border-color:var(--accent);}
-input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:pointer;}
-.slider-row{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);margin-top:2px;}
-.val-display{color:var(--accent);font-weight:700;font-size:.82rem;}
-
-/* Buttons */
-.btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#020810;font-weight:700;font-size:.83rem;border:none;border-radius:8px;
-  cursor:pointer;transition:all .2s;box-shadow:0 0 18px rgba(0,212,255,.2);}
-.btn:hover{transform:translateY(-1px);box-shadow:0 0 28px rgba(0,212,255,.4);}
-.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
-.btn-sm{padding:6px 14px;font-size:.7rem;background:var(--card2);color:var(--accent);
-  border:1px solid var(--accent);border-radius:6px;cursor:pointer;font-weight:600;width:auto;}
-.btn-sm:hover{background:rgba(0,212,255,.1);}
-
-/* Status */
-.status-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;
-  background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:.71rem;}
-.spinner{width:13px;height:13px;border:2px solid var(--border2);
-  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
-
-/* NRTL */
-.nrtl-box{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px;}
-.nrtl-row{display:flex;justify-content:space-between;font-size:.7rem;padding:3px 0;
+.card-title{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;padding-bottom:12px;
   border-bottom:1px solid var(--border);}
-.nrtl-row:last-child{border-bottom:none;}
-.nrtl-row span:first-child{color:var(--muted);}
-.nrtl-row span:last-child{color:var(--accent);font-weight:600;}
+.card-title-icon{width:26px;height:26px;border-radius:6px;display:flex;
+  align-items:center;justify-content:center;font-size:.85rem;background:var(--card2);}
 
-/* Prediction */
-.pred-grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px;}
-.pred-card{background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:13px;position:relative;overflow:hidden;}
+/* ── Prediction results ── */
+.pred-grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:16px;}
+.pred-card{background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:14px;position:relative;overflow:hidden;}
 .pred-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
 .pred-card.kd::before{background:var(--accent);}
 .pred-card.epct::before{background:var(--green);}
 .pred-card.z::before{background:var(--purple);}
 .pred-card.sf::before{background:var(--warn);}
-.pred-label{font-size:.62rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em;}
-.pred-name{font-size:.75rem;font-weight:700;color:var(--text);margin:2px 0 8px;}
-.model-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;
-  border-bottom:1px solid rgba(26,51,86,.5);}
+.pred-label{font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;}
+.pred-name{font-size:.78rem;font-weight:700;color:var(--text);margin:3px 0 10px;}
+.model-row{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 0;border-bottom:1px solid rgba(37,54,80,.6);}
 .model-row:last-child{border-bottom:none;}
-.model-row.best{background:rgba(0,229,160,.07);border-radius:4px;padding-inline:4px;}
-.model-tag{font-size:.64rem;color:var(--muted);font-weight:500;}
+.model-row.best{background:rgba(52,211,153,.07);border-radius:4px;
+  padding-inline:6px;margin-inline:-6px;}
+.model-tag{font-size:.65rem;color:var(--muted);font-weight:500;}
 .model-tag.best{color:var(--green);font-weight:700;}
-.model-val{font-size:.74rem;font-weight:700;}
+.model-val{font-size:.75rem;font-weight:700;}
 .best-model-badge{display:inline-flex;align-items:center;gap:6px;
-  padding:4px 12px;border-radius:20px;font-size:.7rem;font-weight:700;
-  background:rgba(0,229,160,.15);border:1px solid rgba(0,229,160,.4);color:var(--green);}
+  padding:4px 12px;border-radius:5px;font-size:.7rem;font-weight:700;
+  background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--green);}
 
-/* Accuracy */
+/* ── Model comparison bars ── */
+.model-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.model-bar-label{font-size:.65rem;color:var(--muted);width:80px;text-align:right;flex-shrink:0;}
+.model-bar-bg{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+.model-bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
+.model-bar-val{font-size:.65rem;font-weight:700;width:42px;text-align:left;flex-shrink:0;}
+
+/* ── Grid helpers ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
 .acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+/* ── Metric tiles ── */
+.metric-tile{background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px;text-align:center;}
+.metric-val{font-size:1.5rem;font-weight:800;color:var(--accent);}
+.metric-lbl{font-size:.63rem;color:var(--muted);margin-top:3px;font-weight:500;}
+.opt-val{font-size:1.6rem;font-weight:800;color:var(--accent);}
+.opt-lbl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+
+/* ── Charts ── */
 .chart-wrap{position:relative;height:300px;}
 .chart-wrap-lg{position:relative;height:400px;}
 .chart-wrap-xl{position:relative;height:480px;}
+.chart-guide{background:var(--card2);border-left:3px solid var(--border2);
+  border-radius:0 6px 6px 0;padding:10px 14px;margin-top:12px;
+  font-size:.7rem;color:var(--muted);line-height:1.6;}
+.chart-guide strong{color:var(--text2);}
 
-/* Grid helpers */
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
-.grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
-.metric-tile{background:var(--card2);border:1px solid var(--border2);
-  border-radius:8px;padding:12px;text-align:center;}
-.metric-val{font-size:1.4rem;font-weight:800;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.metric-lbl{font-size:.63rem;color:var(--muted);margin-top:2px;}
+/* ── Accuracy ── */
+.sens-ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+.sens-ctrl > div{display:flex;flex-direction:column;gap:3px;}
+.sens-ctrl label{margin:0;font-size:.7rem;}
+.sens-ctrl select{width:auto;padding:6px 10px;}
 
-/* ANN */
-.ann-diagram{width:100%;overflow-x:auto;padding:12px 0;}
-.ann-svg{display:block;margin:0 auto;min-width:600px;}
-
-/* MATLAB */
-.matlab-eq{background:var(--card2);border:1px solid var(--border2);
-  border-radius:8px;padding:14px;font-family:'Courier New',monospace;
-  font-size:.74rem;color:var(--green);line-height:1.8;overflow-x:auto;white-space:pre-wrap;}
-
-/* Tables */
+/* ── Tables ── */
 .heat-wrap{overflow-x:auto;}
-.heat-table{border-collapse:collapse;font-size:.65rem;min-width:400px;width:100%;}
-.heat-table th{background:var(--card2);color:var(--muted);padding:6px 8px;
+.heat-table{border-collapse:collapse;font-size:.66rem;min-width:400px;width:100%;}
+.heat-table th{background:var(--card2);color:var(--muted);padding:7px 10px;
   text-align:center;border:1px solid var(--border);font-weight:600;}
-.heat-table td{padding:5px 8px;text-align:center;border:1px solid var(--border);
+.heat-table td{padding:6px 10px;text-align:center;border:1px solid var(--border);
   font-weight:600;font-size:.67rem;}
-.anova-table{width:100%;border-collapse:collapse;font-size:.68rem;}
-.anova-table th{background:var(--card2);color:var(--muted);padding:6px 10px;
-  text-align:left;border-bottom:1px solid var(--border2);font-weight:600;}
-.anova-table td{padding:5px 10px;border-bottom:1px solid rgba(19,34,64,.6);}
+.anova-table{width:100%;border-collapse:collapse;font-size:.7rem;}
+.anova-table th{background:var(--card2);color:var(--muted);padding:8px 12px;
+  text-align:left;border-bottom:1px solid var(--border2);font-weight:600;font-size:.68rem;}
+.anova-table td{padding:6px 12px;border-bottom:1px solid var(--border);}
+.anova-table tr:hover td{background:rgba(255,255,255,.02);}
 .anova-table td:not(:first-child){text-align:right;}
 .sig{color:var(--green);font-weight:700;}
 .nsig{color:var(--muted);}
-
-/* Controls */
-.sens-ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
-.sens-ctrl label{margin:0;white-space:nowrap;}
-.sens-ctrl select{width:auto;padding:5px 8px;}
-
-/* Badges */
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.6rem;font-weight:700;}
-.badge-out{background:rgba(245,197,24,.12);color:var(--warn);border:1px solid rgba(245,197,24,.3);}
-.badge-in{background:rgba(0,229,160,.12);color:var(--green);border:1px solid rgba(0,229,160,.3);}
-
-/* Isotherms */
-.iso-params{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-.iso-card{background:var(--card2);border:1px solid var(--border2);border-radius:8px;
-  padding:10px 14px;min-width:140px;}
-.iso-title{font-size:.6rem;color:var(--muted);font-weight:600;margin-bottom:5px;text-transform:uppercase;}
-.iso-row{display:flex;justify-content:space-between;font-size:.69rem;gap:10px;}
-.iso-row span:first-child{color:var(--muted);}
-.iso-row span:last-child{color:var(--accent);font-weight:700;}
-
-/* Acid chips */
-.acid-strip{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
-.acid-chip{padding:5px 14px;border-radius:20px;font-size:.72rem;font-weight:600;
-  cursor:pointer;border:1px solid var(--border2);background:var(--card2);color:var(--muted);transition:all .2s;}
-.acid-chip.active{background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(124,109,248,.18));
-  border-color:var(--accent);color:var(--accent);}
-.acid-chip:hover:not(.active){border-color:var(--accent);color:var(--text);}
-
-/* Info box */
-.info-box{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.18);
-  border-radius:8px;padding:10px 14px;font-size:.71rem;color:var(--muted);line-height:1.6;}
-.info-box strong{color:var(--accent);}
-
-/* Chart guide */
-.chart-guide{background:rgba(0,212,255,.04);border-left:3px solid var(--accent);
-  border-radius:0 6px 6px 0;padding:10px 14px;margin-top:10px;
-  font-size:.71rem;color:var(--muted);line-height:1.7;}
-.chart-guide strong{color:var(--accent);}
-
-/* Chemistry tab */
-.chem-grid{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px;}
-.mol-box{background:var(--card2);border:1px solid var(--border2);border-radius:10px;
-  padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;}
-.mol-formula{font-size:.95rem;font-weight:700;color:var(--accent);font-family:monospace;}
-.prop-table{width:100%;border-collapse:collapse;font-size:.7rem;}
-.prop-table tr{border-bottom:1px solid var(--border);}
-.prop-table tr:last-child{border-bottom:none;}
-.prop-table td:first-child{color:var(--muted);padding:5px 0;width:50%;}
-.prop-table td:last-child{color:var(--text);font-weight:600;text-align:right;}
-.inter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:14px;}
-.inter-card{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px;}
-.inter-name{font-size:.72rem;font-weight:700;color:var(--accent);margin-bottom:3px;}
-.inter-formula{font-size:.68rem;color:var(--purple);margin-bottom:4px;font-family:monospace;}
-.inter-role{font-size:.65rem;color:var(--muted);line-height:1.4;}
-.eq-box{background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.2);
-  border-radius:8px;padding:12px;margin-bottom:12px;text-align:center;}
-.eq-text{font-size:.8rem;color:var(--accent);font-family:monospace;}
-.eq-desc{font-size:.65rem;color:var(--muted);margin-top:4px;}
-.mech-text{font-size:.7rem;color:var(--muted);line-height:1.7;background:var(--card2);
-  border-left:3px solid var(--accent2);padding:10px 12px;border-radius:0 6px 6px 0;}
-
-/* Bayesian tab */
-.bayes-opt-card{background:linear-gradient(135deg,rgba(0,212,255,.06),rgba(124,109,248,.06));
-  border:1px solid rgba(0,212,255,.2);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
-.opt-val{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.opt-lbl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
-.next-table{width:100%;border-collapse:collapse;font-size:.7rem;}
-.next-table th{background:var(--card2);color:var(--muted);padding:7px 10px;
+.next-table{width:100%;border-collapse:collapse;font-size:.71rem;}
+.next-table th{background:var(--card2);color:var(--muted);padding:8px 12px;
   text-align:left;border-bottom:1px solid var(--border2);font-weight:600;}
-.next-table td{padding:6px 10px;border-bottom:1px solid var(--border);}
+.next-table td{padding:7px 12px;border-bottom:1px solid var(--border);}
+.next-table tr:hover td{background:rgba(255,255,255,.02);}
 .next-table tr:last-child td{border-bottom:none;}
 .next-table td:first-child{color:var(--accent);font-weight:700;}
 
-/* Responsive */
+/* ── Badges ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.6rem;font-weight:700;}
+.badge-out{background:rgba(251,191,36,.1);color:var(--warn);border:1px solid rgba(251,191,36,.25);}
+.badge-in{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.25);}
+
+/* ── MATLAB ── */
+.matlab-eq{background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;font-family:'Courier New',monospace;
+  font-size:.74rem;color:var(--teal);line-height:1.9;overflow-x:auto;white-space:pre-wrap;}
+
+/* ── Isotherms ── */
+.iso-params{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.iso-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px 14px;min-width:150px;}
+.iso-title{font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:6px;
+  text-transform:uppercase;letter-spacing:.08em;}
+.iso-row{display:flex;justify-content:space-between;font-size:.7rem;gap:10px;padding:2px 0;}
+.iso-row span:first-child{color:var(--muted);}
+.iso-row span:last-child{color:var(--accent);font-weight:700;}
+
+/* ── ANN ── */
+.ann-diagram{width:100%;overflow-x:auto;padding:12px 0;}
+.ann-svg{display:block;margin:0 auto;min-width:600px;}
+
+/* ── Chemistry ── */
+.chem-grid{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px;}
+.mol-box{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.mol-formula{font-size:.95rem;font-weight:700;color:var(--accent);font-family:'Courier New',monospace;}
+.prop-table{width:100%;border-collapse:collapse;font-size:.71rem;}
+.prop-table tr{border-bottom:1px solid var(--border);}
+.prop-table tr:last-child{border-bottom:none;}
+.prop-table td:first-child{color:var(--muted);padding:6px 0;width:50%;}
+.prop-table td:last-child{color:var(--text);font-weight:600;text-align:right;}
+.inter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:14px;}
+.inter-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;}
+.inter-name{font-size:.73rem;font-weight:700;color:var(--accent);margin-bottom:3px;}
+.inter-formula{font-size:.69rem;color:var(--purple);margin-bottom:5px;font-family:'Courier New',monospace;}
+.inter-role{font-size:.66rem;color:var(--muted);line-height:1.5;}
+.eq-box{background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:12px;margin-bottom:12px;text-align:center;}
+.eq-text{font-size:.82rem;color:var(--teal);font-family:'Courier New',monospace;}
+.eq-desc{font-size:.66rem;color:var(--muted);margin-top:4px;}
+.mech-text{font-size:.71rem;color:var(--text2);line-height:1.7;background:var(--card2);
+  border-left:3px solid var(--accent2);padding:12px 14px;border-radius:0 var(--radius) var(--radius) 0;}
+
+/* ── Bayesian ── */
+.bayes-opt-card{background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px;margin-bottom:16px;}
+
+/* ── Loading ── */
+#acc-loading{margin-bottom:14px;}
+
+/* ── Responsive ── */
 @media(max-width:900px){
   .body{flex-direction:column;}
   .sidebar{width:100%;min-width:unset;border-right:none;border-bottom:1px solid var(--border);}
   .grid2,.acc-grid,.chem-grid{grid-template-columns:1fr;}
+  .tabs{flex-wrap:wrap;}
+  .tab{flex:unset;}
 }
 </style>
 </head>
@@ -253,8 +292,9 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
   <div class="header-logo">🧪</div>
   <div class="header-text">
     <h1>HDES Reactive Extraction — Predictor</h1>
-    <p>Menthol-Decanoic Acid HDES + TOA System · Yıldız et al. (2023) · 5 Computational Models</p>
+    <p>Menthol-Decanoic Acid HDES + TOA · Yıldız et al. (2023)</p>
   </div>
+  <div class="header-divider"></div>
   <div class="header-badges">
     <span class="hbadge hbadge-blue">RSM · RF · XGBoost · GPR · ANN</span>
     <span class="hbadge hbadge-purple">API v3.1</span>
@@ -265,27 +305,37 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <div class="section-label">System Parameters</div>
-
+  <div class="section-label">Process Parameters</div>
+  <div class="sidebar-section">
   <div>
-    <label>Initial Acid Concentration (wt%) <span class="val-display" id="cin-val">10.0</span></label>
+    <div class="slider-label-row">
+      <label>Acid Concentration (wt%)</label>
+      <span class="val-display" id="cin-val">10.0</span>
+    </div>
     <input type="range" id="cin" min="5" max="15" step="0.5" value="10"
            oninput="document.getElementById('cin-val').textContent=parseFloat(this.value).toFixed(1)"/>
-    <div class="slider-row"><span>5%</span><span>15%</span></div>
+    <div class="slider-row"><span>5 wt%</span><span>15 wt%</span></div>
   </div>
 
   <div>
-    <label>HDES Molar Ratio (DecA:Menthol) <span class="val-display" id="hdes-val">1.00</span></label>
+    <div class="slider-label-row">
+      <label>HDES Molar Ratio (DecA:Menthol)</label>
+      <span class="val-display" id="hdes-val">1.00</span>
+    </div>
     <input type="range" id="hdes" min="0.5" max="1.5" step="0.05" value="1.0"
            oninput="document.getElementById('hdes-val').textContent=parseFloat(this.value).toFixed(2)"/>
     <div class="slider-row"><span>0.5</span><span>1.5</span></div>
   </div>
 
   <div>
-    <label>TOA Concentration (mol/L) <span class="val-display" id="toa-val">1.00</span></label>
+    <div class="slider-label-row">
+      <label>TOA Concentration (mol/L)</label>
+      <span class="val-display" id="toa-val">1.00</span>
+    </div>
     <input type="range" id="toa" min="0.1" max="1.9" step="0.05" value="1.0"
            oninput="document.getElementById('toa-val').textContent=parseFloat(this.value).toFixed(2)"/>
-    <div class="slider-row"><span>0.1</span><span>1.9</span></div>
+    <div class="slider-row"><span>0.1 mol/L</span><span>1.9 mol/L</span></div>
+  </div>
   </div>
 
   <div>
@@ -296,17 +346,17 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
       <div class="acid-chip" id="acid-FA" onclick="selectSysAcid('FA',this)">FA</div>
       <div class="acid-chip" id="acid-IA" onclick="selectSysAcid('IA',this)">IA</div>
     </div>
-    <div style="font-size:.63rem;color:var(--muted);">PA=Propionic · AA=Acetic · FA=Formic · IA=Itaconic*</div>
+    <div class="acid-note">PA = Propionic · AA = Acetic · FA = Formic · IA = Itaconic*</div>
   </div>
 
-  <button class="btn" id="predict-btn" onclick="runPrediction()">⚡ Predict &amp; Compare Models</button>
+  <button class="btn" id="predict-btn" onclick="runPrediction()">Run Prediction &amp; Compare Models</button>
 
   <div id="status-bar" style="display:none" class="status-bar">
     <div class="spinner"></div><span id="status-msg">Running models…</span>
   </div>
 
   <div>
-    <div class="section-label" style="margin-top:4px">NRTL Thermodynamics</div>
+    <div class="section-label">NRTL Thermodynamics</div>
     <div class="nrtl-box">
       <div class="nrtl-row"><span>γ aqueous</span><span id="g-aq">—</span></div>
       <div class="nrtl-row"><span>γ organic</span><span id="g-org">—</span></div>
@@ -316,9 +366,9 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
   </div>
 
   <div class="info-box">
-    💡 <strong>Tip:</strong> Max efficiency at low acid (5%), low HDES ratio (0.5), high TOA (1.9 mol/L).<br/>
-    Paper peaks: <strong>PA≈97%</strong>, AA≈93%, FA≈90%<br/>
-    *IA = Itaconic acid (estimated model)
+    <strong>Optimal conditions:</strong> Low acid (5 wt%), low HDES ratio (0.5), high TOA (1.9 mol/L).<br/>
+    Published peaks: <strong>PA≈97%</strong>, AA≈93%, FA≈90%<br/>
+    *IA = Itaconic acid (estimated RSM model)
   </div>
 </aside>
 
@@ -326,27 +376,27 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
 <main class="content">
 
 <div class="tabs">
-  <div class="tab active" onclick="showTab('results',this)">📊 Results</div>
-  <div class="tab" onclick="showTab('accuracy',this)">🎯 Accuracy</div>
-  <div class="tab" onclick="showTab('ann',this)">🧠 ANN</div>
-  <div class="tab" onclick="showTab('surface3d',this)">🌐 3D Surface</div>
-  <div class="tab" onclick="showTab('sensitivity',this)">📈 Sensitivity</div>
-  <div class="tab" onclick="showTab('matlab',this)">📐 MATLAB/RSM</div>
-  <div class="tab" onclick="showTab('isotherms',this)">⚗️ Isotherms</div>
-  <div class="tab" onclick="showTab('chemistry',this)">🔬 Chemistry</div>
-  <div class="tab" onclick="showTab('bayesian',this)">🎲 Bayesian</div>
+  <div class="tab active" onclick="showTab('results',this)">Results</div>
+  <div class="tab" onclick="showTab('accuracy',this)">Accuracy</div>
+  <div class="tab" onclick="showTab('ann',this)">ANN</div>
+  <div class="tab" onclick="showTab('surface3d',this)">3D Surface</div>
+  <div class="tab" onclick="showTab('sensitivity',this)">Sensitivity</div>
+  <div class="tab" onclick="showTab('matlab',this)">MATLAB/RSM</div>
+  <div class="tab" onclick="showTab('isotherms',this)">Isotherms</div>
+  <div class="tab" onclick="showTab('chemistry',this)">Chemistry</div>
+  <div class="tab" onclick="showTab('bayesian',this)">Bayesian</div>
 </div>
 
 <!-- ═══ RESULTS ═══ -->
 <div id="tab-results">
-  <div id="results-placeholder" class="card" style="text-align:center;padding:40px;">
-    <div style="font-size:3rem;margin-bottom:12px;">🧪</div>
-    <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:8px;">
-      Set parameters &amp; click <span style="color:var(--accent)">Predict</span>
+  <div id="results-placeholder" class="card" style="text-align:center;padding:56px 40px;">
+    <div style="width:56px;height:56px;background:var(--card2);border:1px solid var(--border2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px;">⚗</div>
+    <div style="font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.01em;">
+      Configure parameters and run prediction
     </div>
-    <div style="font-size:.75rem;color:var(--muted)">
-      5 models run in parallel — RSM, Random Forest, XGBoost, GPR, ANN<br/>
-      Best model highlighted automatically · GPR includes uncertainty (±1σ)
+    <div style="font-size:.75rem;color:var(--muted);line-height:1.7;max-width:400px;margin:0 auto;">
+      5 models execute in parallel — RSM, Random Forest, XGBoost, GPR, ANN<br/>
+      Best model highlighted automatically · GPR includes ±1σ uncertainty
     </div>
   </div>
   <div id="results-content" style="display:none">
@@ -532,7 +582,7 @@ input[type=range]{width:100%;padding:3px;accent-color:var(--accent);cursor:point
       <div><label>TOA Concentration (mol/L)</label>
         <input type="number" id="m-toa" value="1.9" min="0.1" max="1.9" step="0.05"/></div>
       <div style="display:flex;align-items:flex-end;">
-        <button class="btn" onclick="runMATLAB()" style="font-size:.78rem;padding:8px;">📐 Compute RSM</button></div>
+        <button class="btn" onclick="runMATLAB()" style="font-size:.78rem;padding:8px;">Compute RSM</button></div>
     </div>
     <div style="margin-bottom:12px;">
       <div class="section-label">RSM Quadratic Equation (Coded Variables)</div>
@@ -673,19 +723,19 @@ const TARGET_META = {
   SF_min: {label:'Min Solvent Factor SF', unit:'',   cls:'sf',   color:'#f5c518'},
 };
 
-const PLOT_BG    = '#0a1628';
-const PLOT_PAPER = '#060e1a';
+const PLOT_BG    = '#162038';
+const PLOT_PAPER = '#0c1424';
 
 function plotLayout(extra={}) {
   return Object.assign({
     paper_bgcolor: PLOT_PAPER,
     plot_bgcolor:  PLOT_BG,
-    font:  {color:'#8ab4d4', size:11, family:'Segoe UI, system-ui, sans-serif'},
+    font:  {color:'#94a3b8', size:11, family:'Inter, system-ui, sans-serif'},
     margin:{t:40,r:20,b:55,l:65},
-    legend:{bgcolor:'rgba(0,0,0,0)',bordercolor:'#132240',borderwidth:1,font:{size:10}},
-    xaxis: {gridcolor:'#132240',zerolinecolor:'#1a3060',linecolor:'#1a3060',tickfont:{size:10}},
-    yaxis: {gridcolor:'#132240',zerolinecolor:'#1a3060',linecolor:'#1a3060',tickfont:{size:10}},
-    hoverlabel:{bgcolor:'#0f1e38',bordercolor:'#1a3060',font:{size:11}},
+    legend:{bgcolor:'rgba(0,0,0,0)',bordercolor:'#253650',borderwidth:1,font:{size:10}},
+    xaxis: {gridcolor:'#253650',zerolinecolor:'#2e4268',linecolor:'#2e4268',tickfont:{size:10}},
+    yaxis: {gridcolor:'#253650',zerolinecolor:'#2e4268',linecolor:'#2e4268',tickfont:{size:10}},
+    hoverlabel:{bgcolor:'#1d2d47',bordercolor:'#2e4268',font:{size:11}},
   }, extra);
 }
 
@@ -1008,21 +1058,21 @@ async function load3DSurface() {
     const trace = {
       type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
       colorscale:[
-        [0,'#03080f'],[0.15,'#061c3c'],[0.35,'#083c6e'],
-        [0.55,'#0068a0'],[0.75,'#00b4d8'],[0.88,'#00d4ff'],[1,'#00e5a0'],
+        [0,'#0c1424'],[0.15,'#112040'],[0.35,'#163566'],
+        [0.55,'#1e5fa8'],[0.75,'#2d9fd8'],[0.88,'#38bdf8'],[1,'#34d399'],
       ],
       showscale:true,
-      colorbar:{tickfont:{color:'#8ab4d4',size:10},title:{text:'E%',font:{color:'#8ab4d4',size:11}},thickness:12},
+      colorbar:{tickfont:{color:'#94a3b8',size:10},title:{text:'E%',font:{color:'#94a3b8',size:11}},thickness:12},
       lighting:{diffuse:0.9,specular:0.2,roughness:0.4,ambient:0.5},
-      contours:{z:{show:true,usecolormap:true,highlightcolor:'#00e5a0',project:{z:true}}},
+      contours:{z:{show:true,usecolormap:true,highlightcolor:'#34d399',project:{z:true}}},
     };
     const layout = {
       paper_bgcolor: PLOT_PAPER,
       scene:{
-        bgcolor:'#060e1a',
-        xaxis:{title:{text:d.x_info.label,font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240',zerolinecolor:'#1a3060'},
-        yaxis:{title:{text:d.y_info.label,font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240',zerolinecolor:'#1a3060'},
-        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240'},
+        bgcolor:'#111d33',
+        xaxis:{title:{text:d.x_info.label,font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650',zerolinecolor:'#2e4268'},
+        yaxis:{title:{text:d.y_info.label,font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650',zerolinecolor:'#2e4268'},
+        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650'},
         camera:{eye:{x:1.4,y:-1.4,z:1.1}},
       },
       margin:{t:30,b:10,l:10,r:10},
@@ -1502,24 +1552,24 @@ async function loadBayesSurface(acid, coded){
     const trace = {
       type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
       colorscale:[
-        [0,'#03080f'],[0.2,'#061c3c'],[0.4,'#083c6e'],
-        [0.6,'#0068a0'],[0.8,'#00b4d8'],[0.9,'#00d4ff'],[1,'#f5c518'],
+        [0,'#0c1424'],[0.2,'#112040'],[0.4,'#163566'],
+        [0.6,'#1e5fa8'],[0.8,'#2d9fd8'],[0.9,'#38bdf8'],[1,'#fbbf24'],
       ],
       showscale:true,
-      colorbar:{tickfont:{color:'#8ab4d4',size:10},title:{text:'E%',font:{color:'#8ab4d4',size:11}},thickness:12},
+      colorbar:{tickfont:{color:'#94a3b8',size:10},title:{text:'E%',font:{color:'#94a3b8',size:11}},thickness:12},
       contours:{z:{show:true,usecolormap:true,project:{z:true}}},
     };
     const layout = {
       paper_bgcolor: PLOT_PAPER,
       scene:{
-        bgcolor:'#060e1a',
-        xaxis:{title:{text:d.x_info.label,font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240'},
-        yaxis:{title:{text:d.y_info.label,font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240'},
-        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#8ab4d4'}},tickfont:{color:'#4a6080'},gridcolor:'#132240'},
+        bgcolor:'#111d33',
+        xaxis:{title:{text:d.x_info.label,font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650'},
+        yaxis:{title:{text:d.y_info.label,font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650'},
+        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650'},
         camera:{eye:{x:1.4,y:-1.4,z:1.2}},
       },
       margin:{t:30,b:10,l:10,r:10},
-      title:{text:`${acid} — Optimisation Landscape (at optimal X1=${coded.X1})`,font:{color:'#e2ecff',size:12}},
+      title:{text:`${acid} — Optimisation Landscape (at optimal X1=${coded.X1})`,font:{color:'#e8f0fe',size:12}},
     };
     Plotly.newPlot('bayes-surface-chart',[trace],layout,{responsive:true});
   } catch(e){console.error(e);}
