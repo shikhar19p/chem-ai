@@ -55,7 +55,89 @@ PAPER_RSM = {
     "IA": {"intercept": 44.20, "b1": -2.10,  "b2": -1.45, "b3": 36.80,
            "b12": -1.50,  "b13":  1.60, "b23": -0.75,
            "b11":  0.62,  "b22":  0.18, "b33": -4.10},
+    # Estimated from pKa/hydrophobicity trends relative to FA/AA/PA
+    "BA":  {"intercept": 74.20, "b1": -1.28, "b2": -1.95, "b3": 24.80,
+            "b12":  0.15, "b13": -0.38, "b23":  1.55,
+            "b11": -0.20, "b22": -1.05, "b33": -3.10},  # Butyric acid
+    "VA":  {"intercept": 75.80, "b1": -1.15, "b2": -1.88, "b3": 23.50,
+            "b12":  0.20, "b13": -0.30, "b23":  1.40,
+            "b11": -0.18, "b22": -0.98, "b33": -2.95},  # Valeric acid
+    "LA":  {"intercept": 52.10, "b1": -1.95, "b2": -1.60, "b3": 31.20,
+            "b12": -1.20, "b13":  1.40, "b23": -0.60,
+            "b11":  0.55, "b22":  0.14, "b33": -3.85},  # Lactic acid
+    "LEV": {"intercept": 58.40, "b1": -1.75, "b2": -1.52, "b3": 33.10,
+            "b12": -1.35, "b13":  1.50, "b23": -0.68,
+            "b11":  0.58, "b22":  0.16, "b33": -3.95},  # Levulinic acid
+    "SA":  {"intercept": 41.50, "b1": -2.20, "b2": -1.38, "b3": 38.20,
+            "b12": -1.60, "b13":  1.65, "b23": -0.80,
+            "b11":  0.65, "b22":  0.20, "b33": -4.25},  # Succinic acid (diprotic)
+    "MA":  {"intercept": 35.80, "b1": -2.50, "b2": -1.20, "b3": 42.10,
+            "b12": -1.80, "b13":  1.75, "b23": -0.90,
+            "b11":  0.70, "b22":  0.22, "b33": -4.60},  # Maleic acid (diprotic)
+    "CA":  {"intercept": 28.30, "b1": -2.80, "b2": -1.10, "b3": 46.50,
+            "b12": -2.00, "b13":  1.90, "b23": -1.00,
+            "b11":  0.75, "b22":  0.25, "b33": -5.10},  # Citric acid (triprotic) - estimated
 }
+
+ACID_PROPS = {
+    'FA':  {'name':'Formic Acid',    'mw':46.03,  'pka':'3.75',       'valence':1, 'formula':'HCOOH'},
+    'AA':  {'name':'Acetic Acid',    'mw':60.05,  'pka':'4.76',       'valence':1, 'formula':'CH₃COOH'},
+    'PA':  {'name':'Propionic Acid', 'mw':74.08,  'pka':'4.87',       'valence':1, 'formula':'C₂H₅COOH'},
+    'BA':  {'name':'Butyric Acid',   'mw':88.11,  'pka':'4.82',       'valence':1, 'formula':'C₃H₇COOH'},
+    'VA':  {'name':'Valeric Acid',   'mw':102.13, 'pka':'4.84',       'valence':1, 'formula':'C₄H₉COOH'},
+    'LA':  {'name':'Lactic Acid',    'mw':90.08,  'pka':'3.86',       'valence':1, 'formula':'CH₃CH(OH)COOH'},
+    'LEV': {'name':'Levulinic Acid', 'mw':116.12, 'pka':'4.59',       'valence':1, 'formula':'CH₃CO(CH₂)₂COOH'},
+    'IA':  {'name':'Itaconic Acid',  'mw':130.10, 'pka':'3.84/5.55',  'valence':2, 'formula':'C₅H₆O₄', 'estimated':True},
+    'SA':  {'name':'Succinic Acid',  'mw':118.09, 'pka':'4.21/5.64',  'valence':2, 'formula':'(CH₂COOH)₂', 'estimated':True},
+    'MA':  {'name':'Maleic Acid',    'mw':116.07, 'pka':'1.83/6.07',  'valence':2, 'formula':'cis-HOOCCH=CHCOOH', 'estimated':True},
+    'CA':  {'name':'Citric Acid',    'mw':192.12, 'pka':'3.13/4.76/6.40', 'valence':3, 'formula':'C₆H₈O₇', 'estimated':True},
+}
+
+EXTRACTANT_PROPS = {
+    'TOA':  {'name':'Tri-n-octylamine', 'mw':353.67, 'density':0.81, 'pka_conj':11.5, 'validated':True},
+    'TBA':  {'name':'Tributylamine',    'mw':185.35, 'density':0.78, 'pka_conj':10.9, 'validated':False},
+    'A336': {'name':'Alamine 336',      'mw':353.0,  'density':0.81, 'pka_conj':11.3, 'validated':False},
+}
+
+HDES_COMBOS = {
+    'MenthDecA': {'name':'Menthol:Decanoic Acid (paper)',   'hba':'Menthol','hbd':'Decanoic Acid','validated':True},
+    'ThymDecA':  {'name':'Thymol:Decanoic Acid',            'hba':'Thymol', 'hbd':'Decanoic Acid','validated':False},
+    'ThymMenth': {'name':'Thymol:Menthol',                  'hba':'Thymol', 'hbd':'Menthol',      'validated':False},
+    'MenthCapr': {'name':'Menthol:Caprylic Acid',           'hba':'Menthol','hbd':'Caprylic Acid', 'validated':False},
+}
+
+
+def vol_pct_to_mol_L(vol_pct: float, extractant_type: str = 'TOA') -> float:
+    """Convert extractant vol/vol% to mol/L."""
+    ep = EXTRACTANT_PROPS.get(extractant_type, EXTRACTANT_PROPS['TOA'])
+    return (vol_pct / 100.0) * ep['density'] * 1000.0 / ep['mw']
+
+
+def normality_to_cin(normality_N: float, acid_type: str) -> float:
+    """Convert Normality (N) to equivalent Cin value used in model (N for monoprotic = same)."""
+    v = ACID_PROPS.get(acid_type, {}).get('valence', 1)
+    return normality_N / v  # Return effective molarity for model
+
+
+def calculate_ntu(E_pct: float) -> float:
+    """Number of Transfer Units for single-stage extraction."""
+    e = min(max(E_pct / 100.0, 0.001), 0.999)
+    return round(-float(np.log(1.0 - e)), 4)
+
+
+def calculate_stages(KD: float, sf_ratio: float = 1.0) -> float:
+    """Kremser equation: theoretical stages for countercurrent extraction."""
+    if KD <= 0 or sf_ratio <= 0:
+        return 1.0
+    a = KD * sf_ratio  # extraction factor
+    if abs(a - 1.0) < 1e-6:
+        return 1.0
+    # For high E% targets (99%), use Kremser
+    try:
+        n = float(np.log(99.0) / np.log(a + 1e-9))
+        return round(max(n, 1.0), 2)
+    except Exception:
+        return 1.0
 
 def rsm_predict(acid: str, X1: float, X2: float, X3: float) -> float:
     """Predict E% using paper RSM equation (coded variables)."""
@@ -320,14 +402,14 @@ def _paper_rsm_fallback(acid_type, Cin, TBA_pct, DES_ratio_num, target):
 def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
     ga, go, C_TBA = compute_nrtl_gamma(Cin, TBA_pct, DES_ratio_num)
 
-    # Itaconic acid: only paper RSM available (not in ML training set)
-    if acid_type == 'IA':
+    # Non-FA/AA/PA acids: only paper RSM available (not in ML training set)
+    if acid_type not in ('FA', 'AA', 'PA') and acid_type in PAPER_RSM:
         preds = {}
         X1 = (Cin * 100 - 10.0) / 5.0
         X2 = (DES_ratio_num - 1.0) / 0.5
         TOA_molL = (TBA_pct - 5.0) / 15.0 * 1.8 + 0.1
         X3 = (TOA_molL - 1.0) / 0.9
-        e = rsm_predict('IA', X1, X2, X3)
+        e = rsm_predict(acid_type, X1, X2, X3)
         kd = e / max(100 - e, 0.01)
         preds['E_pct']  = {'RSM': round(e, 4)}
         preds['KD']     = {'RSM': round(kd, 4)}
@@ -408,23 +490,53 @@ class PredictRequest(BaseModel):
     Cin: float
     TBA_pct: float
     DES_ratio_num: float
-    acid_type: str = "PA"   # FA | AA | PA
+    acid_type: str = "PA"
+    extractant_type: str = "TOA"
+    hdes_combo: str = "MenthDecA"
+    toa_vol_pct: float = None  # if provided, overrides TBA_pct conversion
 
 
 @app.post("/predict")
 def predict(req: PredictRequest):
     acid = req.acid_type if req.acid_type in PAPER_RSM else "PA"
-    preds, ga, go, C_TBA = predict_all(req.Cin, req.TBA_pct, req.DES_ratio_num,
+
+    # If toa_vol_pct provided, convert to mol/L and use as TBA_pct equivalent
+    tba_pct = req.TBA_pct
+    if req.toa_vol_pct is not None:
+        tba_pct = vol_pct_to_mol_L(req.toa_vol_pct, req.extractant_type)
+
+    preds, ga, go, C_TBA = predict_all(req.Cin, tba_pct, req.DES_ratio_num,
                                         acid_type=acid)
     in_range = (
         min(CIN_LEVELS) <= req.Cin <= max(CIN_LEVELS) and
-        min(TBA_LEVELS) <= req.TBA_pct <= max(TBA_LEVELS) and
+        min(TBA_LEVELS) <= tba_pct <= max(TBA_LEVELS) and
         req.DES_ratio_num in DES_RATIO_LEVELS
     )
+
+    # Compute NTU and theoretical stages from best available prediction
+    e_best = None
+    kd_best = None
+    for model in ['GPR', 'XGBoost', 'RandomForest', 'RSM', 'ANN']:
+        v = preds.get('E_pct', {}).get(model)
+        if v is not None:
+            e_best = v; break
+    for model in ['GPR', 'XGBoost', 'RandomForest', 'RSM', 'ANN']:
+        v = preds.get('KD', {}).get(model)
+        if v is not None:
+            kd_best = v; break
+    ntu    = calculate_ntu(e_best)   if e_best   is not None else None
+    stages = calculate_stages(kd_best) if kd_best is not None else None
+    acid_meta = ACID_PROPS.get(acid, {})
+    extr_meta = EXTRACTANT_PROPS.get(req.extractant_type, {})
+
     return {"predictions": preds,
             "nrtl": {"gamma_aq": round(ga,4), "gamma_org": round(go,4),
                      "C_TBA_molar": round(C_TBA,4)},
-            "in_range": in_range}
+            "in_range": in_range,
+            "ntu": ntu,
+            "stages": stages,
+            "acid_meta": acid_meta,
+            "extractant_meta": extr_meta}
 
 
 @app.get("/metrics")
@@ -777,6 +889,42 @@ def bayesian_optimal(acid: str = Query("PA")):
         "KD_max": opt_KD,
         "next_experiments": suggestions,
     }
+
+
+@app.get("/predicted_vs_actual")
+def get_predicted_vs_actual(target: str = Query("E_pct"), model: str = Query("GPR")):
+    """Load training data and return predicted vs actual pairs."""
+    try:
+        from src.data_generator import load_or_generate
+        from src.feature_engineering import add_polynomial_features
+        df, _ = load_or_generate()
+        df = add_polynomial_features(df)
+
+        all_models = load_all_models()
+        if not _training_done.is_set():
+            return {"error": "Models still training"}
+
+        results = []
+        for _, row in df.iterrows():
+            acid = 'FA' if row.get('is_FA', 0) else ('AA' if row.get('is_AA', 0) else 'PA')
+            try:
+                preds_r, _, _, _ = predict_all(
+                    float(row['Cin']), float(row['TBA_pct']), float(row['DES_ratio_num']),
+                    acid_type=acid
+                )
+                pred_val = preds_r.get(target, {}).get(model)
+                if pred_val is not None and target in row:
+                    results.append({
+                        'actual': round(float(row[target]), 4),
+                        'predicted': round(float(pred_val), 4),
+                        'acid': acid,
+                        'Cin': float(row['Cin']),
+                    })
+            except Exception:
+                pass
+        return {'target': target, 'model': model, 'points': results}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/")
