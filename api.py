@@ -817,7 +817,9 @@ def get_isotherms(
     q_vals  = []
     for ce in Ce_vals:
         preds, _, _, _ = predict_all(float(ce), TBA_pct, DES_ratio_num)
-        z = preds.get('Z', {}).get('GPR') or preds.get('Z', {}).get('RandomForest', 0.0)
+        zp = preds.get('Z', {})
+        z = (zp.get('GPR') or zp.get('XGBoost') or zp.get('RandomForest') or
+             zp.get('RSM') or 0.0)
         q_vals.append(max(float(z), 0.0))
     Ce_arr = np.array(Ce_vals); q_arr = np.array(q_vals)
     isofit = fit_isotherms(Ce_arr, q_arr)

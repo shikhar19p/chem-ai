@@ -721,10 +721,17 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
       Reactive liquid-liquid extraction using HDES (Hydrophobic Deep Eutectic Solvent) + TOA (Tri-n-octylamine) at 306 K, O/A ratio = 1. Select an acid to view its structure, intermediates, and extraction mechanism.
     </div>
     <div class="acid-strip" id="chem-acid-strip">
-      <div class="acid-chip active" onclick="showChemistry('PA',this)">Propionic Acid (PA)</div>
-      <div class="acid-chip" onclick="showChemistry('AA',this)">Acetic Acid (AA)</div>
-      <div class="acid-chip" onclick="showChemistry('FA',this)">Formic Acid (FA)</div>
-      <div class="acid-chip" onclick="showChemistry('IA',this)">Itaconic Acid (IA)*</div>
+      <div class="acid-chip active" onclick="showChemistry('PA',this)">PA</div>
+      <div class="acid-chip" onclick="showChemistry('AA',this)">AA</div>
+      <div class="acid-chip" onclick="showChemistry('FA',this)">FA</div>
+      <div class="acid-chip" onclick="showChemistry('BA',this)">BA</div>
+      <div class="acid-chip" onclick="showChemistry('VA',this)">VA</div>
+      <div class="acid-chip" onclick="showChemistry('LA',this)">LA</div>
+      <div class="acid-chip" onclick="showChemistry('LEV',this)">LEV</div>
+      <div class="acid-chip estimated" onclick="showChemistry('IA',this)">IA*</div>
+      <div class="acid-chip estimated" onclick="showChemistry('SA',this)">SA*</div>
+      <div class="acid-chip estimated" onclick="showChemistry('MA',this)">MA*</div>
+      <div class="acid-chip estimated" onclick="showChemistry('CA',this)">CA*</div>
     </div>
     <div id="chem-content"></div>
   </div>
@@ -744,7 +751,14 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
           <option value="PA">Propionic Acid (PA)</option>
           <option value="AA">Acetic Acid (AA)</option>
           <option value="FA">Formic Acid (FA)</option>
+          <option value="BA">Butyric Acid (BA)</option>
+          <option value="VA">Valeric Acid (VA)</option>
+          <option value="LA">Lactic Acid (LA)</option>
+          <option value="LEV">Levulinic Acid (LEV)</option>
           <option value="IA">Itaconic Acid (IA)*</option>
+          <option value="SA">Succinic Acid (SA)*</option>
+          <option value="MA">Maleic Acid (MA)*</option>
+          <option value="CA">Citric Acid (CA)*</option>
         </select></div>
       <button class="btn-sm" onclick="loadBayesian()">↻ Optimise</button>
     </div>
@@ -910,6 +924,8 @@ function renderResults(data, cinPct, hdes, toa) {
   document.getElementById('best-epct').textContent = typeof bestE==='number' ? bestE.toFixed(2) : bestE;
   document.getElementById('best-kd').textContent   = typeof bestKD==='number'? bestKD.toFixed(3) : bestKD;
   document.getElementById('best-z').textContent    = typeof bestZ==='number' ? bestZ.toFixed(4) : bestZ;
+  document.getElementById('best-ntu').textContent   = data.ntu   != null ? Number(data.ntu).toFixed(3)   : '—';
+  document.getElementById('best-stages').textContent= data.stages!= null ? Number(data.stages).toFixed(1) : '—';
   document.getElementById('range-badge').innerHTML = in_range
     ? '<span class="badge badge-in">✓ Within experimental range</span>'
     : '<span class="badge badge-out">⚠ Outside experimental range</span>';
@@ -973,6 +989,7 @@ async function loadAccuracy() {
   try {
     const resp = await fetch(`${API}/model_accuracy`);
     const data = await resp.json();
+    if(!Array.isArray(data)) throw new Error('Backend returned non-array: ' + JSON.stringify(data).slice(0,80));
     renderAccuracy(data);
   } catch(e) {
     document.getElementById('acc-charts').innerHTML = `<div class="info-box">⚠️ ${e.message}</div>`;
@@ -982,6 +999,10 @@ async function loadAccuracy() {
 }
 
 function renderAccuracy(data) {
+  if(!Array.isArray(data)||!data.length){
+    document.getElementById('acc-charts').innerHTML='<div class="info-box">No metrics yet — models may still be training. Try again in a moment.</div>';
+    return;
+  }
   const targets = [...new Set(data.map(d=>d.target))];
   const models  = [...new Set(data.map(d=>d.model))];
   const container = document.getElementById('acc-charts');
@@ -1039,6 +1060,64 @@ function renderAccuracy(data) {
 }
 
 // ════════════════════════════════════════
+// PREDICTED VS ACTUAL
+// ════════════════════════════════════════
+async function loadPredVsActual() {
+  const target = document.getElementById('pva-target')?.value || 'E_pct';
+  const model  = document.getElementById('pva-model')?.value  || 'GPR';
+  const statsEl= document.getElementById('pva-stats');
+  const chartEl= document.getElementById('pva-chart');
+  if(!statsEl||!chartEl) return;
+  statsEl.innerHTML = '<div class="status-bar"><div class="spinner"></div><span>Loading…</span></div>';
+  chartEl.innerHTML = '';
+  try {
+    const resp = await fetch(`${API}/predicted_vs_actual?target=${target}&model=${model}`);
+    const d = await resp.json();
+    if(d.error){ statsEl.innerHTML=`<div class="info-box">⚠️ ${d.error}</div>`; return; }
+    const pts = d.points||[];
+    if(!pts.length){ statsEl.innerHTML='<div class="info-box">No data — models may still be training.</div>'; return; }
+
+    const actuals = pts.map(p=>p.actual), preds2 = pts.map(p=>p.predicted);
+    const n = pts.length;
+    const ssRes = pts.reduce((s,p)=>s+(p.actual-p.predicted)**2,0);
+    const mean2 = actuals.reduce((a,b)=>a+b,0)/n;
+    const ssTot = actuals.reduce((s,v)=>s+(v-mean2)**2,0);
+    const r2 = ssTot>0 ? 1 - ssRes/ssTot : 1;
+    const rmse = Math.sqrt(ssRes/n);
+    const mae  = pts.reduce((s,p)=>s+Math.abs(p.actual-p.predicted),0)/n;
+
+    statsEl.innerHTML = `
+      <div class="metric-tile"><div class="metric-val" style="color:var(--green)">${r2.toFixed(4)}</div><div class="metric-lbl">R²</div></div>
+      <div class="metric-tile"><div class="metric-val">${rmse.toFixed(4)}</div><div class="metric-lbl">RMSE</div></div>
+      <div class="metric-tile"><div class="metric-val">${mae.toFixed(4)}</div><div class="metric-lbl">MAE</div></div>
+      <div class="metric-tile"><div class="metric-val">${n}</div><div class="metric-lbl">Points</div></div>`;
+
+    const ACID_COL = {FA:'#d97706',AA:'#059669',PA:'#2563eb'};
+    const acids = [...new Set(pts.map(p=>p.acid))];
+    const traces = acids.map(ac=>({
+      type:'scatter',mode:'markers',name:ac,
+      x:pts.filter(p=>p.acid===ac).map(p=>p.actual),
+      y:pts.filter(p=>p.acid===ac).map(p=>p.predicted),
+      marker:{color:ACID_COL[ac]||'#7c3aed',size:7,opacity:0.85,
+              line:{color:'rgba(0,0,0,0.1)',width:1}},
+    }));
+    const allV = [...actuals,...preds2];
+    const mn=Math.min(...allV), mx=Math.max(...allV);
+    traces.push({type:'scatter',mode:'lines',name:'Perfect fit (y=x)',showlegend:true,
+      x:[mn,mx],y:[mn,mx],line:{color:'#dc2626',width:1.5,dash:'dot'}});
+    Plotly.newPlot(chartEl, traces,
+      plotLayout({
+        title:{text:`${model} — ${target}: Predicted vs Actual`,font:{size:12,color:'#334155'}},
+        xaxis:{title:{text:`Actual ${target}`,font:{size:11}}},
+        yaxis:{title:{text:`Predicted ${target}`,font:{size:11}}},
+        margin:{t:50,b:65,l:75,r:30},
+      }),{responsive:true,displayModeBar:false});
+  } catch(e){
+    statsEl.innerHTML=`<div class="info-box">⚠️ ${e.message}</div>`;
+  }
+}
+
+// ════════════════════════════════════════
 // ANN ARCHITECTURE
 // ════════════════════════════════════════
 async function loadANNArch() {
@@ -1052,6 +1131,10 @@ async function loadANNArch() {
 }
 
 function renderANNDiagram(data) {
+  if(!data||!data.layers||!Array.isArray(data.layers)){
+    document.getElementById('ann-diagram').innerHTML='<div class="info-box">⚠️ Could not load ANN architecture. Backend may still be initialising.</div>';
+    return;
+  }
   const layers = data.layers;
   const typeColor = {
     input:     {bg:'#061d2e', stroke:'#00d4ff', text:'#00d4ff', badge:'#0e6080'},
@@ -1072,8 +1155,8 @@ function renderANNDiagram(data) {
       <polygon points="0 0,7 3.5,0 7" fill="#00d4ff" opacity="0.6"/>
     </marker>
   </defs>
-  <text x="${SVG_W/2}" y="26" text-anchor="middle" fill="#e2ecff" font-size="14" font-weight="700">
-    ANN Architecture — ${data.total_params_est.toLocaleString()} params (est.)
+  <text x="${SVG_W/2}" y="26" text-anchor="middle" fill="#334155" font-size="14" font-weight="700">
+    ANN Architecture — ${(data.total_params_est||0).toLocaleString()} params (est.)
   </text>`;
 
   layers.forEach((layer,i)=>{
@@ -1096,8 +1179,10 @@ function renderANNDiagram(data) {
     let desc = layer.desc||'';
     if(layer.type==='dense'&&layer.units){
       const prevDense=layers.slice(0,i).reverse().find(l=>l.type==='dense'||l.type==='input');
-      const prevUnits=prevDense?prevDense.units:'?';
-      desc = `${layer.units} neurons · ~${(layer.units*(prevUnits+1)).toLocaleString()} weights`;
+      const prevUnits=prevDense?.units;
+      desc = prevUnits!=null
+        ? `${layer.units} neurons · ~${(layer.units*(prevUnits+1)).toLocaleString()} weights`
+        : `${layer.units} neurons`;
     }
     svg += `<text x="${labelX}" y="${midY+10}" fill="#6080a0" font-size="9">${desc}</text>`;
     if(i<layers.length-1){
@@ -1137,29 +1222,29 @@ async function load3DSurface() {
     const url = `${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=28&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`;
     const resp = await fetch(url);
     const d = await resp.json();
-    if(d.error) return;
+    if(d.error){document.getElementById('surface3d-chart').innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${d.error}</div>`;return;}
     const trace = {
       type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
       colorscale:[
-        [0,'#0c1424'],[0.15,'#112040'],[0.35,'#163566'],
-        [0.55,'#1e5fa8'],[0.75,'#2d9fd8'],[0.88,'#38bdf8'],[1,'#34d399'],
+        [0,'#312e81'],[0.2,'#1d4ed8'],[0.4,'#0891b2'],
+        [0.6,'#059669'],[0.8,'#ca8a04'],[0.9,'#ea580c'],[1,'#dc2626'],
       ],
       showscale:true,
-      colorbar:{tickfont:{color:'#94a3b8',size:10},title:{text:'E%',font:{color:'#94a3b8',size:11}},thickness:12},
+      colorbar:{tickfont:{color:'#475569',size:10},title:{text:'E%',font:{color:'#334155',size:11}},thickness:12},
       lighting:{diffuse:0.9,specular:0.2,roughness:0.4,ambient:0.5},
-      contours:{z:{show:true,usecolormap:true,highlightcolor:'#34d399',project:{z:true}}},
+      contours:{z:{show:true,usecolormap:true,highlightcolor:'#059669',project:{z:true}}},
     };
     const layout = {
       paper_bgcolor: PLOT_PAPER,
       scene:{
-        bgcolor:'#111d33',
-        xaxis:{title:{text:d.x_info.label,font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650',zerolinecolor:'#2e4268'},
-        yaxis:{title:{text:d.y_info.label,font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650',zerolinecolor:'#2e4268'},
-        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650'},
+        bgcolor:'#f0f4f8',
+        xaxis:{title:{text:d.x_info.label,font:{color:'#334155'}},tickfont:{color:'#64748b'},gridcolor:'#cbd5e1',zerolinecolor:'#94a3b8'},
+        yaxis:{title:{text:d.y_info.label,font:{color:'#334155'}},tickfont:{color:'#64748b'},gridcolor:'#cbd5e1',zerolinecolor:'#94a3b8'},
+        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#334155'}},tickfont:{color:'#64748b'},gridcolor:'#cbd5e1'},
         camera:{eye:{x:1.4,y:-1.4,z:1.1}},
       },
       margin:{t:30,b:10,l:10,r:10},
-      title:{text:`${acid} — 3D RSM Response Surface (${xvar} vs ${yvar})`,font:{color:'#e2ecff',size:13}},
+      title:{text:`${acid} — 3D RSM Response Surface (${xvar} vs ${yvar})`,font:{color:'#0f172a',size:13}},
     };
     Plotly.newPlot('surface3d-chart',[trace],layout,{responsive:true});
   } catch(e){console.error('3D surface',e);}
@@ -1200,10 +1285,14 @@ async function loadHeatmap() {
 async function loadSensitivity() {
   const xvar  =document.getElementById('sens-xvar').value;
   const target=document.getElementById('sens-target').value;
+  const acid  =sysAcid||'PA';
   try {
-    const resp = await fetch(`${API}/sensitivity?xvar=${xvar}&target=${target}&steps=15`);
+    const resp = await fetch(`${API}/sensitivity?xvar=${xvar}&target=${target}&steps=15&acid_type=${acid}`);
     const rows = await resp.json();
-    if(!rows.length) return;
+    if(!Array.isArray(rows)||!rows.length){
+      document.getElementById('sensitivity-chart').innerHTML='<div class="info-box" style="margin:20px;">No data — backend may still be training models.</div>';
+      return;
+    }
     const AXIS_LABELS={Cin:'Acid Cin (N)',TBA_pct:'TOA (wt%)',DES_ratio_num:'DES Ratio'};
     const xVals=rows.map(r=>r[xvar]);
     const models=['RSM','RandomForest','XGBoost','GPR','ANN'];
@@ -1343,13 +1432,13 @@ async function loadRSMContour(){
   try {
     const resp=await fetch(`${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=30&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`);
     const d=await resp.json();
-    if(d.error) return;
+    if(d.error){document.getElementById('rsm-contour-chart').innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${d.error}</div>`;return;}
     const trace={
       type:'contour', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
-      colorscale:'Viridis',
-      contours:{showlabels:true,labelfont:{size:9,color:'white'},coloring:'heatmap'},
-      colorbar:{tickfont:{color:'#8ab4d4',size:10},title:{text:'E%',font:{color:'#8ab4d4',size:11}},thickness:12},
-      line:{smoothing:1.2},
+      colorscale:'Jet', ncontours:16,
+      contours:{showlabels:true,labelfont:{size:9,color:'#0f172a'},coloring:'fill'},
+      colorbar:{tickfont:{color:'#475569',size:10},title:{text:'E%',font:{color:'#334155',size:11}},thickness:12},
+      line:{smoothing:1.3, width:1.5, color:'rgba(0,0,0,0.35)'},
     };
     Plotly.newPlot('rsm-contour-chart',[trace],
       plotLayout({
@@ -1384,19 +1473,20 @@ async function loadIsotherms(){
       </div>`;
 
     // Main isotherm chart
+    const hasData = d.q?.some(v=>v>0);
     const traces=[
-      {type:'scatter',mode:'markers',name:'GPR Predictions',
+      {type:'scatter',mode:'markers',name:'GPR/RSM Predictions',
        x:d.Ce, y:d.q,
-       marker:{color:'#00d4ff',size:9,symbol:'circle',line:{color:'#ffffff',width:1}},},
+       marker:{color:'#2563eb',size:9,symbol:'circle',line:{color:'#fff',width:1}},},
     ];
     if(d.Langmuir_curve?.length)
       traces.push({type:'scatter',mode:'lines',name:'Langmuir Fit',
         x:d.Ce_smooth, y:d.Langmuir_curve,
-        line:{color:'#00e5a0',width:2.5}});
+        line:{color:'#059669',width:2.5}});
     if(d.Freundlich_curve?.length)
       traces.push({type:'scatter',mode:'lines',name:'Freundlich Fit',
         x:d.Ce_smooth, y:d.Freundlich_curve,
-        line:{color:'#9980ff',width:2.5,dash:'dash'}});
+        line:{color:'#7c3aed',width:2.5,dash:'dash'}});
 
     Plotly.newPlot('iso-chart',traces,
       plotLayout({
@@ -1410,9 +1500,9 @@ async function loadIsotherms(){
       const ceq = d.Ce.map((ce,i)=> d.q[i]>0 ? ce/d.q[i] : null).filter(v=>v!==null);
       const ceX = d.Ce.filter((_,i)=>d.q[i]>0);
       Plotly.newPlot('iso-linear-chart',
-        [{type:'scatter',mode:'markers+lines',name:'C\u1D49/q vs C\u1D49',
+        [{type:'scatter',mode:'markers+lines',name:'Ce/q vs Ce',
           x:ceX, y:ceq,
-          marker:{color:'#f5c518',size:7},line:{color:'#f5c518',width:2}}],
+          marker:{color:'#d97706',size:7},line:{color:'#d97706',width:2}}],
         plotLayout({
           title:{text:'Linearised Langmuir: C\u1D49/q vs C\u1D49 (slope=1/Q\u2098\u2090\u02E3, intercept=1/(b·Q\u2098\u2090\u02E3))',font:{size:11,color:'#8ab4d4'}},
           xaxis:{title:{text:'C\u1D49 (N)',font:{size:11}}},
@@ -1496,6 +1586,103 @@ const CHEM_DATA = {
     equation:'HCOOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [HCOO\u207B\u00B7TOAH\u207A]\u208Aorg\u208B',
     equationDesc:'Reactive extraction equilibrium at 306 K. Highest TOA conc (1.9 mol/L) recommended.',
   },
+  BA:{
+    name:'Butyric Acid', formula:'CH\u2083(CH\u2082)\u2082COOH', mw:88.11, pka:'4.82', bp:163.7, mp:-5.3,
+    density:0.959, solubility:'Miscible', logP:0.79, dipole:'1.65 D', color:'#0891b2',
+    svg:`<svg viewBox="0 0 300 90" xmlns="http://www.w3.org/2000/svg">
+      <text x="4" y="50" font-size="12" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <line x1="40" y1="46" x2="70" y2="46" stroke="#0891b2" stroke-width="2.5"/>
+      <text x="72" y="50" font-size="12" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="106" y1="46" x2="136" y2="46" stroke="#0891b2" stroke-width="2.5"/>
+      <text x="138" y="50" font-size="12" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="172" y1="46" x2="202" y2="46" stroke="#0891b2" stroke-width="2.5"/>
+      <text x="204" y="50" font-size="12" fill="#0891b2" font-family="monospace">C</text>
+      <line x1="213" y1="43" x2="213" y2="18" stroke="#059669" stroke-width="2.5"/>
+      <line x1="217" y1="43" x2="217" y2="18" stroke="#059669" stroke-width="2.5"/>
+      <text x="206" y="14" font-size="12" fill="#059669" font-family="monospace">O</text>
+      <line x1="219" y1="50" x2="244" y2="66" stroke="#4db3ff" stroke-width="2.5"/>
+      <text x="246" y="71" font-size="12" fill="#4db3ff" font-family="monospace">OH</text>
+    </svg>`,
+    mechanism:'Butyric acid (pKa 4.82) is a short-chain fatty acid with a propyl chain, giving it moderate hydrophobicity. Its logP=0.79 makes it more amenable to extraction than formic or acetic acid. The longer carbon chain enhances ion-pair stability with TOA in the HDES phase, leading to higher KD values compared to FA/AA. The Menthol:Decanoic Acid HDES provides excellent solvation through van der Waals interactions with the butyl chain.',
+    intermediates:[
+      {name:'Butyrate-TOA Ion Pair',formula:'[C\u2083H\u2087COO\u207B][TOAH\u207A]',role:'Primary extraction species. Stronger than AA complex due to longer hydrophobic chain.'},
+      {name:'1:1 H-Bond Adduct',formula:'C\u2083H\u2087COOH\u00B7TOA',role:'H-bonded complex at low Cin. Hydrophobic chain enhances organic phase stability.'},
+    ],
+    equation:'C\u2083H\u2087COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [C\u2083H\u2087COO\u207B\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Estimated reactive extraction at 306 K, O/A = 1:1',
+  },
+  VA:{
+    name:'Valeric Acid', formula:'CH\u2083(CH\u2082)\u2083COOH', mw:102.13, pka:'4.84', bp:186.1, mp:-34.5,
+    density:0.939, solubility:'4 g/100 mL', logP:1.28, dipole:'1.61 D', color:'#7c3aed',
+    svg:`<svg viewBox="0 0 330 90" xmlns="http://www.w3.org/2000/svg">
+      <text x="4" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <line x1="38" y1="46" x2="64" y2="46" stroke="#7c3aed" stroke-width="2.5"/>
+      <text x="66" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="98" y1="46" x2="124" y2="46" stroke="#7c3aed" stroke-width="2.5"/>
+      <text x="126" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="158" y1="46" x2="184" y2="46" stroke="#7c3aed" stroke-width="2.5"/>
+      <text x="186" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="218" y1="46" x2="244" y2="46" stroke="#7c3aed" stroke-width="2.5"/>
+      <text x="246" y="50" font-size="11" fill="#7c3aed" font-family="monospace">COOH</text>
+    </svg>`,
+    mechanism:'Valeric acid (pentanoic acid, pKa 4.84) has the highest hydrophobicity among the monocarboxylic series (logP=1.28), making it the easiest to extract. The four-carbon chain provides strong van der Waals interactions with TOA and the HDES matrix. At lower TOA concentrations, valeric acid still achieves high E% compared to shorter-chain homologs.',
+    intermediates:[
+      {name:'Valerate-TOA Ion Pair',formula:'[C\u2084H\u2089COO\u207B][TOAH\u207A]',role:'Primary species. Most hydrophobic of the monocarboxylic series — highest organic-phase stability.'},
+      {name:'DES-VA Solvate',formula:'VA\u00B7MenthDecA',role:'Butyl chain interacts strongly with DES alkyl chains via hydrophobic effect.'},
+    ],
+    equation:'C\u2084H\u2089COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [C\u2084H\u2089COO\u207B\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Estimated reactive extraction at 306 K. Highest KD of monocarboxylic series.',
+  },
+  LA:{
+    name:'Lactic Acid', formula:'CH\u2083CH(OH)COOH', mw:90.08, pka:'3.86', bp:122, mp:18,
+    density:1.209, solubility:'Miscible', logP:'-0.72', dipole:'2.5 D', color:'#db2777',
+    svg:`<svg viewBox="0 0 280 90" xmlns="http://www.w3.org/2000/svg">
+      <text x="4" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <line x1="38" y1="46" x2="70" y2="46" stroke="#db2777" stroke-width="2.5"/>
+      <text x="72" y="50" font-size="11" fill="#db2777" font-family="monospace">CH</text>
+      <line x1="92" y1="42" x2="92" y2="18" stroke="#4db3ff" stroke-width="2"/>
+      <text x="80" y="14" font-size="11" fill="#4db3ff" font-family="monospace">OH</text>
+      <line x1="100" y1="46" x2="132" y2="46" stroke="#db2777" stroke-width="2.5"/>
+      <text x="134" y="50" font-size="11" fill="#db2777" font-family="monospace">C</text>
+      <line x1="143" y1="43" x2="143" y2="18" stroke="#059669" stroke-width="2.5"/>
+      <line x1="147" y1="43" x2="147" y2="18" stroke="#059669" stroke-width="2.5"/>
+      <text x="136" y="14" font-size="11" fill="#059669" font-family="monospace">O</text>
+      <line x1="149" y1="50" x2="174" y2="66" stroke="#4db3ff" stroke-width="2.5"/>
+      <text x="176" y="71" font-size="11" fill="#4db3ff" font-family="monospace">OH</text>
+    </svg>`,
+    mechanism:'Lactic acid (pKa 3.86) is an α-hydroxy acid with both a carboxyl and a hydroxyl group. Its high hydrophilicity (logP=−0.72) makes extraction more challenging than simple carboxylic acids. The hydroxyl group can form additional H-bonds with HDES, competing with TOA complexation. Despite lower KD, the lower pKa (stronger acid) helps drive extraction under appropriate conditions.',
+    intermediates:[
+      {name:'Lactate-TOA Complex',formula:'[CH\u2083CH(OH)COO\u207B][TOAH\u207A]',role:'Primary species. OH group remains in organic phase, slightly destabilising the complex.'},
+      {name:'Cyclic H-bond Adduct',formula:'LA\u00B7TOA (6-membered)',role:'Intramolecular-like 6-membered ring involving OH···N and COOH·TOA stabilises complex.'},
+    ],
+    equation:'CH\u2083CH(OH)COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [lactate\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Estimated reactive extraction. Hydroxyl group slightly reduces extractability vs PA.',
+  },
+  LEV:{
+    name:'Levulinic Acid', formula:'CH\u2083CO(CH\u2082)\u2082COOH', mw:116.12, pka:'4.59', bp:245, mp:37,
+    density:1.134, solubility:'Miscible', logP:0.11, dipole:'2.8 D', color:'#ea580c',
+    svg:`<svg viewBox="0 0 310 110" xmlns="http://www.w3.org/2000/svg">
+      <text x="4" y="56" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2083</text>
+      <line x1="38" y1="51" x2="68" y2="51" stroke="#ea580c" stroke-width="2.5"/>
+      <text x="70" y="56" font-size="11" fill="#ea580c" font-family="monospace">C</text>
+      <line x1="79" y1="48" x2="79" y2="23" stroke="#ea580c" stroke-width="2.5"/>
+      <line x1="83" y1="48" x2="83" y2="23" stroke="#ea580c" stroke-width="2.5"/>
+      <text x="72" y="19" font-size="11" fill="#ea580c" font-family="monospace">O</text>
+      <line x1="85" y1="55" x2="115" y2="55" stroke="#ea580c" stroke-width="2.5"/>
+      <text x="117" y="60" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="149" y1="55" x2="179" y2="55" stroke="#ea580c" stroke-width="2.5"/>
+      <text x="181" y="60" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="213" y1="55" x2="243" y2="55" stroke="#ea580c" stroke-width="2.5"/>
+      <text x="245" y="60" font-size="11" fill="#ea580c" font-family="monospace">COOH</text>
+    </svg>`,
+    mechanism:'Levulinic acid (4-oxopentanoic acid) is a biobased platform chemical with both a keto group and a carboxyl group. Despite moderate hydrophilicity (logP=0.11), the keto group provides additional interaction sites with HDES components. The carbonyl group at C4 participates in H-bonding with Menthol hydroxyl groups, providing extra driving force for organic-phase partitioning.',
+    intermediates:[
+      {name:'Levulinate-TOA Ion Pair',formula:'[CH\u2083CO(CH\u2082)\u2082COO\u207B][TOAH\u207A]',role:'Primary extraction species. Keto group enhances DES interaction.'},
+      {name:'Keto-DES Adduct',formula:'LEV\u00B7Menthol',role:'C=O of levulinic acid H-bonds with menthol OH in the HDES matrix.'},
+    ],
+    equation:'CH\u2083CO(CH\u2082)\u2082COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [levulinate\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Estimated reactive extraction. Keto functionality provides additional DES stabilisation.',
+  },
   IA:{
     name:'Itaconic Acid (Estimated)', formula:'HOOCCH\u2082C(=CH\u2082)COOH', mw:130.10,
     pka:'3.84 / 5.55 (diprotic)', bp:'>200 °C (dec)', mp:167.0,
@@ -1521,6 +1708,74 @@ const CHEM_DATA = {
     ],
     equation:'HOOCCH\u2082C(=CH\u2082)COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [mono-itaconate\u00B7TOAH\u207A]\u208Aorg\u208B',
     equationDesc:'Estimated reactive extraction at 306 K. IA is more hydrophilic; higher TOA needed. *Estimated model.',
+  },
+  SA:{
+    name:'Succinic Acid (Estimated)', formula:'(CH\u2082COOH)\u2082', mw:118.09, pka:'4.21 / 5.64 (diprotic)', bp:235, mp:185,
+    density:1.572, solubility:'8.8 g/100 mL', logP:'-0.59', dipole:'2.6 D (est.)', color:'#0d9488',
+    svg:`<svg viewBox="0 0 290 90" xmlns="http://www.w3.org/2000/svg">
+      <text x="4" y="50" font-size="11" fill="#4db3ff" font-family="monospace">HOOC</text>
+      <line x1="42" y1="46" x2="74" y2="46" stroke="#0d9488" stroke-width="2.5"/>
+      <text x="76" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="108" y1="46" x2="140" y2="46" stroke="#0d9488" stroke-width="2.5"/>
+      <text x="142" y="50" font-size="11" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="174" y1="46" x2="206" y2="46" stroke="#0d9488" stroke-width="2.5"/>
+      <text x="208" y="50" font-size="11" fill="#4db3ff" font-family="monospace">COOH</text>
+    </svg>`,
+    mechanism:'Succinic acid is a diprotic C4 dicarboxylic acid (pKa1=4.21, pKa2=5.64). Extraction primarily occurs via the first carboxyl group forming an ion pair with TOA. The second carboxyl group remains largely protonated at typical pH, acting as an anchor in the aqueous phase, which reduces overall extractability. High TOA concentrations and optimised HDES ratios are required. *RSM coefficients estimated.',
+    intermediates:[
+      {name:'Mono-Succinate-TOA',formula:'[HOOC(CH\u2082)\u2082COO\u207B][TOAH\u207A]',role:'Dominant extraction species — only one COOH reacts with TOA at typical conditions.'},
+      {name:'Di-TOA Complex',formula:'[TOA\u00B7H\u207A]\u2082\u00B7SA\u00B2\u207B',role:'Only at very high TOA (>1.5 mol/L). Requires both pKa deprotonations.'},
+    ],
+    equation:'HOOC(CH\u2082)\u2082COOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [mono-succinate\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Estimated reactive extraction. Diprotic acid — first protonation drives extraction. *Estimated.',
+  },
+  MA:{
+    name:'Maleic Acid (Estimated)', formula:'cis-HOOCCH=CHCOOH', mw:116.07, pka:'1.83 / 6.07 (diprotic)', bp:135, mp:130,
+    density:1.590, solubility:'78.8 g/100 mL', logP:'-1.09', dipole:'2.7 D (est.)', color:'#854d0e',
+    svg:`<svg viewBox="0 0 300 110" xmlns="http://www.w3.org/2000/svg">
+      <text x="4" y="60" font-size="11" fill="#4db3ff" font-family="monospace">HOOC</text>
+      <line x1="42" y1="55" x2="74" y2="55" stroke="#854d0e" stroke-width="2.5"/>
+      <text x="76" y="60" font-size="11" fill="#854d0e" font-family="monospace">CH</text>
+      <line x1="96" y1="52" x2="128" y2="52" stroke="#854d0e" stroke-width="2.5"/>
+      <line x1="96" y1="58" x2="128" y2="58" stroke="#854d0e" stroke-width="2.5"/>
+      <text x="130" y="60" font-size="11" fill="#854d0e" font-family="monospace">CH</text>
+      <line x1="150" y1="55" x2="182" y2="55" stroke="#854d0e" stroke-width="2.5"/>
+      <text x="184" y="60" font-size="11" fill="#4db3ff" font-family="monospace">COOH</text>
+      <text x="80" y="30" font-size="9" fill="#64748b" font-family="monospace">(cis-double bond)</text>
+    </svg>`,
+    mechanism:'Maleic acid (cis-butenedioic acid) has an unusually low pKa1=1.83 due to intramolecular H-bonding stabilising the monoanion. This strong acidity could in principle drive extraction even at moderate TOA concentrations. However, the high hydrophilicity (logP=−1.09) and diprotic nature limit effective extraction. The cis double bond geometry restricts molecular flexibility, reducing organic-phase packing efficiency. *RSM values estimated.',
+    intermediates:[
+      {name:'Mono-Maleate-TOA',formula:'[HOOCCH=CHCOO\u207B][TOAH\u207A]',role:'Primary species. Very stable monoanion due to intramolecular H-bond. Low pKa1 aids extraction.'},
+      {name:'Maleate-DES Adduct',formula:'MA\u00B7Menthol',role:'Double-bond interacts with DES via weak \u03C0-interaction with Menthol.'},
+    ],
+    equation:'cis-HOOCCH=CHCOOH\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [mono-maleate\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Estimated. Very low pKa1=1.83 partially compensates for high hydrophilicity. *Estimated.',
+  },
+  CA:{
+    name:'Citric Acid (Estimated)', formula:'C\u2086H\u2088O\u2087', mw:192.12, pka:'3.13 / 4.76 / 6.40 (triprotic)', bp:175, mp:156,
+    density:1.665, solubility:'59.2 g/100 mL', logP:'-1.72', dipole:'3.2 D (est.)', color:'#15803d',
+    svg:`<svg viewBox="0 0 330 130" xmlns="http://www.w3.org/2000/svg">
+      <text x="4" y="55" font-size="10" fill="#4db3ff" font-family="monospace">HOOC</text>
+      <line x1="40" y1="50" x2="70" y2="50" stroke="#15803d" stroke-width="2.5"/>
+      <text x="72" y="55" font-size="10" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="100" y1="50" x2="130" y2="50" stroke="#15803d" stroke-width="2.5"/>
+      <text x="132" y="55" font-size="10" fill="#15803d" font-family="monospace">C</text>
+      <line x1="141" y1="47" x2="141" y2="22" stroke="#4db3ff" stroke-width="2"/>
+      <text x="129" y="18" font-size="10" fill="#4db3ff" font-family="monospace">OH</text>
+      <line x1="145" y1="55" x2="175" y2="55" stroke="#15803d" stroke-width="2.5"/>
+      <text x="143" y="72" font-size="9" fill="#4db3ff" font-family="monospace">COOH</text>
+      <line x1="141" y1="59" x2="141" y2="78" stroke="#4db3ff" stroke-width="2"/>
+      <text x="177" y="60" font-size="10" fill="#8ab4d4" font-family="monospace">CH\u2082</text>
+      <line x1="207" y1="55" x2="237" y2="55" stroke="#15803d" stroke-width="2.5"/>
+      <text x="239" y="60" font-size="10" fill="#4db3ff" font-family="monospace">COOH</text>
+    </svg>`,
+    mechanism:'Citric acid is a triprotic hydroxy-acid with three carboxyl groups and one central hydroxyl. Its high hydrophilicity (logP=−1.72) and three ionisable groups make it the most challenging acid to extract in this series. Extraction is dominated by the first deprotonation (pKa1=3.13). At high TOA concentrations, multi-TOA complexes may form but are thermodynamically unfavourable. The citrate anion is highly solvated in water, creating a strong energy penalty for transfer. *All RSM values estimated.',
+    intermediates:[
+      {name:'Mono-Citrate-TOA',formula:'[HO-citrate\u207B][TOAH\u207A]',role:'Dominant species. Only first COOH (pKa1=3.13) reacts effectively with TOA.'},
+      {name:'Citrate-DES Adduct',formula:'CitH\u2083\u00B7Menthol',role:'Central OH and COOH groups H-bond to DES, partially aiding partitioning.'},
+    ],
+    equation:'C\u2086H\u2088O\u2087\u208Aaq\u208B + TOA\u208Aorg\u208B \u21CC [mono-citrate\u00B7TOAH\u207A]\u208Aorg\u208B',
+    equationDesc:'Estimated. Triprotic acid — very high hydrophilicity limits extraction. Requires max TOA. *Estimated.',
   },
 };
 
@@ -1578,7 +1833,7 @@ async function loadBayesian(){
   try {
     const resp = await fetch(`${API}/bayesian_optimal?acid=${acid}`);
     const d = await resp.json();
-    if(d.error){ document.getElementById('bayes-content').innerHTML=`<div class="info-box">⚠️ ${d.error}</div>`; return; }
+    if(d.error||d.detail||!d.optimal){ document.getElementById('bayes-content').innerHTML=`<div class="info-box">⚠️ ${d.error||d.detail||'No optimum found'}</div>`; return; }
     renderBayesian(d);
     loadBayesSurface(acid, d.coded);
   } catch(e){
@@ -1635,24 +1890,24 @@ async function loadBayesSurface(acid, coded){
     const trace = {
       type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
       colorscale:[
-        [0,'#0c1424'],[0.2,'#112040'],[0.4,'#163566'],
-        [0.6,'#1e5fa8'],[0.8,'#2d9fd8'],[0.9,'#38bdf8'],[1,'#fbbf24'],
+        [0,'#312e81'],[0.2,'#1d4ed8'],[0.4,'#0891b2'],
+        [0.6,'#059669'],[0.8,'#ca8a04'],[0.9,'#ea580c'],[1,'#fbbf24'],
       ],
       showscale:true,
-      colorbar:{tickfont:{color:'#94a3b8',size:10},title:{text:'E%',font:{color:'#94a3b8',size:11}},thickness:12},
+      colorbar:{tickfont:{color:'#475569',size:10},title:{text:'E%',font:{color:'#334155',size:11}},thickness:12},
       contours:{z:{show:true,usecolormap:true,project:{z:true}}},
     };
     const layout = {
       paper_bgcolor: PLOT_PAPER,
       scene:{
-        bgcolor:'#111d33',
-        xaxis:{title:{text:d.x_info.label,font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650'},
-        yaxis:{title:{text:d.y_info.label,font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650'},
-        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#94a3b8'}},tickfont:{color:'#6b82a0'},gridcolor:'#253650'},
+        bgcolor:'#f0f4f8',
+        xaxis:{title:{text:d.x_info.label,font:{color:'#334155'}},tickfont:{color:'#64748b'},gridcolor:'#cbd5e1'},
+        yaxis:{title:{text:d.y_info.label,font:{color:'#334155'}},tickfont:{color:'#64748b'},gridcolor:'#cbd5e1'},
+        zaxis:{title:{text:'E% Extraction Efficiency',font:{color:'#334155'}},tickfont:{color:'#64748b'},gridcolor:'#cbd5e1'},
         camera:{eye:{x:1.4,y:-1.4,z:1.2}},
       },
       margin:{t:30,b:10,l:10,r:10},
-      title:{text:`${acid} — Optimisation Landscape (at optimal X1=${coded.X1})`,font:{color:'#e8f0fe',size:12}},
+      title:{text:`${acid} — Optimisation Landscape (at optimal X1=${coded.X1})`,font:{color:'#0f172a',size:12}},
     };
     Plotly.newPlot('bayes-surface-chart',[trace],layout,{responsive:true});
   } catch(e){console.error(e);}
