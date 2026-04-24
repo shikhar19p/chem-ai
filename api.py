@@ -388,6 +388,25 @@ def load_all_models():
     return _models
 
 
+_TARGET_CLAMPS = {
+    'E_pct':  (0.0, 100.0),
+    'KD':     (0.0, 200.0),
+    'Z':      (0.0, 10.0),
+    'SF_min': (0.05, 50.0),
+}
+
+def _safe_pred(v, target):
+    """Clamp a model prediction to physically valid range; return None for NaN/inf."""
+    try:
+        f = float(v)
+        if not np.isfinite(f):
+            return None
+        lo, hi = _TARGET_CLAMPS.get(target, (-1e9, 1e9))
+        return round(float(np.clip(f, lo, hi)), 4)
+    except Exception:
+        return None
+
+
 @app.on_event("startup")
 async def startup_event():
     t = threading.Thread(target=load_all_models, daemon=True)
@@ -424,7 +443,7 @@ def _rsm_predict_sklearn(t_models, target, X_base, feats_base):
             X_poly = poly.transform(X_base)
             X_sm   = pd.DataFrame(X_poly, columns=names)
             X_sm.insert(0, 'const', 1.0)
-            return round(float(rsm_mdl.predict(X_sm)[0]), 4)
+            return _safe_pred(rsm_mdl.predict(X_sm)[0], target)
         else:
             # Legacy: bare statsmodels object
             from sklearn.preprocessing import PolynomialFeatures
@@ -439,7 +458,7 @@ def _rsm_predict_sklearn(t_models, target, X_base, feats_base):
                 clean.append(s)
             X_sm = pd.DataFrame(X_poly, columns=clean)
             X_sm.insert(0, 'const', 1.0)
-            return round(float(pkg.predict(X_sm)[0]), 4)
+            return _safe_pred(pkg.predict(X_sm)[0], target)
     except Exception:
         return None
 
@@ -447,10 +466,11 @@ def _rsm_predict_sklearn(t_models, target, X_base, feats_base):
 def _paper_rsm_fallback(acid_type, Cin, TBA_pct, DES_ratio_num, target):
     """Compute a reasonable fallback value using paper RSM when ML models not ready."""
     acid = acid_type if acid_type in PAPER_RSM else 'PA'
-    X1 = (Cin * 100 - 10.0) / 5.0
-    X2 = (DES_ratio_num - 1.0) / 0.5
+    # Clamp coded variables to [-2, 2] to prevent polynomial blow-up outside training range
+    X1 = float(np.clip((Cin * 100 - 10.0) / 5.0, -2.0, 2.0))
+    X2 = float(np.clip((DES_ratio_num - 1.0) / 0.5, -2.0, 2.0))
     TOA_molL = (TBA_pct - 5.0) / 15.0 * 1.8 + 0.1
-    X3 = (TOA_molL - 1.0) / 0.9
+    X3 = float(np.clip((TOA_molL - 1.0) / 0.9, -2.0, 2.0))
     e = rsm_predict(acid, X1, X2, X3)
     kd = e / max(100 - e, 0.01)
     if target == 'E_pct': return round(e, 4)
@@ -466,16 +486,16 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
     # Non-FA/AA/PA acids: only paper RSM available (not in ML training set)
     if acid_type not in ('FA', 'AA', 'PA') and acid_type in PAPER_RSM:
         preds = {}
-        X1 = (Cin * 100 - 10.0) / 5.0
-        X2 = (DES_ratio_num - 1.0) / 0.5
+        X1 = float(np.clip((Cin * 100 - 10.0) / 5.0, -2.0, 2.0))
+        X2 = float(np.clip((DES_ratio_num - 1.0) / 0.5, -2.0, 2.0))
         TOA_molL = (TBA_pct - 5.0) / 15.0 * 1.8 + 0.1
-        X3 = (TOA_molL - 1.0) / 0.9
+        X3 = float(np.clip((TOA_molL - 1.0) / 0.9, -2.0, 2.0))
         e = rsm_predict(acid_type, X1, X2, X3)
         kd = e / max(100 - e, 0.01)
-        preds['E_pct']  = {'RSM': round(e, 4)}
-        preds['KD']     = {'RSM': round(kd, 4)}
-        preds['Z']      = {'RSM': round(kd * Cin * 0.75, 4)}
-        preds['SF_min'] = {'RSM': round(max(1.0 / max(kd, 1e-9), 0.05), 4)}
+        preds['E_pct']  = {'RSM': _safe_pred(e,                         'E_pct')}
+        preds['KD']     = {'RSM': _safe_pred(kd,                        'KD')}
+        preds['Z']      = {'RSM': _safe_pred(kd * Cin * 0.75,           'Z')}
+        preds['SF_min'] = {'RSM': _safe_pred(1.0 / max(kd, 1e-9),       'SF_min')}
         return preds, ga, go, C_TBA
 
     all_models = load_all_models()
@@ -504,7 +524,8 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
             try:
                 m = t_models['RandomForest']
                 if isinstance(m, dict): m = m['model']
-                t_preds['RandomForest'] = round(float(m.predict(X_full)[0]), 4)
+                v = _safe_pred(m.predict(X_full)[0], target)
+                if v is not None: t_preds['RandomForest'] = v
             except Exception: pass
 
         # XGBoost
@@ -512,7 +533,8 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
             try:
                 m = t_models['XGBoost']
                 if isinstance(m, dict): m = m['model']
-                t_preds['XGBoost'] = round(float(m.predict(X_full)[0]), 4)
+                v = _safe_pred(m.predict(X_full)[0], target)
+                if v is not None: t_preds['XGBoost'] = v
             except Exception: pass
 
         # GPR
@@ -524,21 +546,21 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
                 mu, sg = gpr.predict(X_s, return_std=True)
                 val = float(scY.inverse_transform(mu.reshape(-1,1)).ravel()[0])
                 std = float(sg[0]) * scY.scale_[0]
-                t_preds['GPR']     = round(val, 4)
-                t_preds['GPR_std'] = round(std, 4)
+                v = _safe_pred(val, target)
+                if v is not None:
+                    t_preds['GPR']     = v
+                    t_preds['GPR_std'] = round(abs(std), 4)
             except Exception: pass
 
         # ANN
         if 'ANN' in t_models:
             try:
-                pkg  = t_models['ANN']
-                scX  = pkg['scaler_X']
-                scY  = pkg['scaler_y']
-                mdl  = pkg['model']
-                X_s  = scX.transform(X_full)
-                y_s  = mdl.predict(X_s, verbose=0).ravel()
-                val  = float(scY.inverse_transform(y_s.reshape(-1,1)).ravel()[0])
-                t_preds['ANN'] = round(val, 4)
+                pkg = t_models['ANN']
+                X_s = pkg['scaler_X'].transform(X_full)
+                y_s = pkg['model'].predict(X_s, verbose=0).ravel()
+                val = float(pkg['scaler_y'].inverse_transform(y_s.reshape(-1,1)).ravel()[0])
+                v = _safe_pred(val, target)
+                if v is not None: t_preds['ANN'] = v
             except Exception: pass
 
         preds[target] = t_preds

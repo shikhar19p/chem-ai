@@ -1006,15 +1006,20 @@ function renderResults(data, cinPct, hdes, toa) {
     : '<span class="badge badge-out">⚠ Extrapolated</span>';
 
   const epctPreds = predictions.E_pct || {};
-  const models = Object.keys(epctPreds).filter(k=>!k.endsWith('_std'));
+  const models = Object.keys(epctPreds).filter(k=>!k.endsWith('_std') && epctPreds[k]!=null);
   let bestModel = models[0] || 'RSM';
-  const vals = models.map(m=>epctPreds[m]).filter(v=>v!=null);
-  const mean = vals.reduce((a,b)=>a+b,0)/(vals.length||1);
-  let minDiff = Infinity;
-  models.forEach(m=>{
-    const diff = Math.abs((epctPreds[m]||0)-mean);
-    if(diff<minDiff){minDiff=diff;bestModel=m;}
-  });
+  // Prefer models with non-zero predictions when others exist
+  const nonZeroModels = models.filter(m => (epctPreds[m]||0) > 0.01);
+  const candidateModels = nonZeroModels.length ? nonZeroModels : models;
+  const vals = candidateModels.map(m=>epctPreds[m]).filter(v=>v!=null&&isFinite(v));
+  if (vals.length) {
+    const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+    let minDiff = Infinity;
+    candidateModels.forEach(m=>{
+      const diff = Math.abs((epctPreds[m]||0)-mean);
+      if(diff<minDiff){minDiff=diff;bestModel=m;}
+    });
+  }
 
   const bestE  = (predictions.E_pct  ||{})[bestModel] ?? '—';
   const bestKD = (predictions.KD     ||{})[bestModel] ?? '—';
