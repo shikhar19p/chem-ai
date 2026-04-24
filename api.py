@@ -326,6 +326,23 @@ def train_models_in_memory():
         _target_step[0] += 1
         print(f"[API] {target}: RF={r2_rf:.4f}  XGB={r2_xgb:.4f}  GPR={r2_gpr:.4f}")
 
+    # ── Save to disk so next cold-start loads in ~30s instead of re-training ──
+    try:
+        os.makedirs(MODELS_DIR, exist_ok=True)
+        for target, t_mods in trained.items():
+            for key, ext in [('RSM','rsm'),('RandomForest','rf'),('XGBoost','xgb'),('GPR','gpr')]:
+                if key in t_mods:
+                    joblib.dump(t_mods[key], os.path.join(MODELS_DIR, f'{ext}_{target}.pkl'))
+            if 'ANN' in t_mods:
+                ann_pkg = t_mods['ANN']
+                ann_pkg['model'].save(os.path.join(MODELS_DIR, f'ann_{target}.keras'))
+                joblib.dump({'scaler_X': ann_pkg['scaler_X'], 'scaler_y': ann_pkg['scaler_y']},
+                            os.path.join(MODELS_DIR, f'ann_scalers_{target}.pkl'))
+        print("[API] Models saved to disk — next cold-start will be fast.")
+        _log_event("Models saved to disk", 100)
+    except Exception as e:
+        print(f"[API] Warning: could not save models: {e}")
+
     return trained, metrics
 
 
