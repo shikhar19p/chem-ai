@@ -21,6 +21,7 @@ sys.path.insert(0, ROOT)
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from config import (TARGETS, MODELS_DIR, REPORTS_DIR,
@@ -1026,11 +1027,13 @@ def get_predicted_vs_actual(target: str = Query("E_pct"), model: str = Query("GP
         return {"error": str(e)}
 
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return {"message": "Reactive Extraction Predictor API v3.1",
-            "status": "ok", "docs": "/docs",
-            "paper": "Yıldız et al. (2023) Sep. Sci. Technol."}
+    html_path = os.path.join(ROOT, "index.html")
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse("<h1>API running — frontend not found at root</h1><p>API docs: <a href='/docs'>/docs</a></p>")
 
 @app.get("/health")
 def health():
