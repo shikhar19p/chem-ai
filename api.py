@@ -21,6 +21,7 @@ sys.path.insert(0, ROOT)
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from config import (TARGETS, MODELS_DIR, REPORTS_DIR,
@@ -151,6 +152,16 @@ def rsm_predict(acid: str, X1: float, X2: float, X3: float) -> float:
 _models: dict = {}
 _metrics_cache: list = []
 _training_done = threading.Event()
+_training_log: list = []
+_training_progress: int = 0
+
+def _log_event(msg: str, pct: int = None):
+    global _training_progress
+    import time as _time
+    if pct is not None:
+        _training_progress = pct
+    _training_log.append({"msg": msg, "pct": _training_progress, "ts": _time.time()})
+    print(f"[Training {_training_progress}%] {msg}")
 
 
 def train_models_in_memory():
@@ -167,14 +178,19 @@ def train_models_in_memory():
     import statsmodels.api as sm
 
     # Prefer real data from paper; fall back to synthetic
+    _log_event("Loading dataset...", 0)
     df, source = load_or_generate()
     df = add_polynomial_features(df)
     print(f"[API] Dataset: {len(df)} rows ({source})")
+    _log_event(f"Dataset ready: {len(df)} rows ({source})", 5)
 
     trained: dict = {}
     metrics: list = []
 
+    _target_step = [0]
     for target in TARGETS:
+        _base = 5 + _target_step[0] * 23
+        _log_event(f"Training {target}...", _base)
         t_models: dict = {}
 
         # ── Random Forest ───────────────────────────────────────────────────
@@ -190,6 +206,7 @@ def train_models_in_memory():
         rmse_rf = float(np.sqrt(mean_squared_error(y_te, rf.predict(X_te))))
         metrics.append({'model': 'RandomForest', 'target': target,
                         'r2': round(r2_rf, 4), 'rmse': round(rmse_rf, 4)})
+        _log_event(f"  ✓ {target} RandomForest R²={r2_rf:.4f}", _base + 4)
 
         # ── XGBoost ────────────────────────────────────────────────────────
         xgb_m = xgb.XGBRegressor(n_estimators=300, max_depth=5, learning_rate=0.05,
@@ -202,6 +219,7 @@ def train_models_in_memory():
         rmse_xgb = float(np.sqrt(mean_squared_error(y_te, xgb_m.predict(X_te))))
         metrics.append({'model': 'XGBoost', 'target': target,
                         'r2': round(r2_xgb, 4), 'rmse': round(rmse_xgb, 4)})
+        _log_event(f"  ✓ {target} XGBoost R²={r2_xgb:.4f}", _base + 8)
 
         # ── GPR (scaled, base features) ────────────────────────────────────
         (X_tr_s2, X_te_s2, y_tr_s2, y_te_s2,
@@ -220,6 +238,7 @@ def train_models_in_memory():
         t_models['GPR'] = {'model': gpr, 'scaler_X': scX2, 'scaler_y': scY2}
         metrics.append({'model': 'GPR', 'target': target,
                         'r2': round(r2_gpr, 4), 'rmse': round(rmse_gpr, 4)})
+        _log_event(f"  ✓ {target} GPR R²={r2_gpr:.4f}", _base + 14)
 
         # ── RSM (statsmodels OLS + quadratic features) ──────────────────────
         try:
@@ -248,6 +267,7 @@ def train_models_in_memory():
             rmse_rsm    = float(np.sqrt(mean_squared_error(y_te_b, y_pred_rsm)))
             metrics.append({'model': 'RSM', 'target': target,
                             'r2': round(r2_rsm, 4), 'rmse': round(rmse_rsm, 4)})
+            _log_event(f"  ✓ {target} RSM R²={r2_rsm:.4f}", _base + 17)
         except Exception as e:
             print(f"[API] RSM failed for {target}: {e}")
 
@@ -299,11 +319,30 @@ def train_models_in_memory():
             metrics.append({'model': 'ANN', 'target': target,
                             'r2': round(r2_ann, 4), 'rmse': round(rmse_ann, 4)})
             print(f"[API] ANN {target}: R²={r2_ann:.4f}")
+            _log_event(f"  ✓ {target} ANN R²={r2_ann:.4f}", _base + 23)
         except Exception as e:
             print(f"[API] ANN training skipped for {target}: {e}")
 
         trained[target] = t_models
+        _target_step[0] += 1
         print(f"[API] {target}: RF={r2_rf:.4f}  XGB={r2_xgb:.4f}  GPR={r2_gpr:.4f}")
+
+    # ── Save to disk so next cold-start loads in ~30s instead of re-training ──
+    try:
+        os.makedirs(MODELS_DIR, exist_ok=True)
+        for target, t_mods in trained.items():
+            for key, ext in [('RSM','rsm'),('RandomForest','rf'),('XGBoost','xgb'),('GPR','gpr')]:
+                if key in t_mods:
+                    joblib.dump(t_mods[key], os.path.join(MODELS_DIR, f'{ext}_{target}.pkl'))
+            if 'ANN' in t_mods:
+                ann_pkg = t_mods['ANN']
+                ann_pkg['model'].save(os.path.join(MODELS_DIR, f'ann_{target}.keras'))
+                joblib.dump({'scaler_X': ann_pkg['scaler_X'], 'scaler_y': ann_pkg['scaler_y']},
+                            os.path.join(MODELS_DIR, f'ann_scalers_{target}.pkl'))
+        print("[API] Models saved to disk — next cold-start will be fast.")
+        _log_event("Models saved to disk", 100)
+    except Exception as e:
+        print(f"[API] Warning: could not save models: {e}")
 
     return trained, metrics
 
@@ -313,6 +352,7 @@ def load_all_models():
     if _models:
         return _models
 
+    _log_event("Checking for saved model files...", 0)
     # Try saved .pkl / .keras files first
     any_found = False
     for target in TARGETS:
@@ -339,10 +379,33 @@ def load_all_models():
         _models[target] = t
 
     if not any_found:
+        _log_event("No saved models found — training from scratch...", 0)
         _models, _metrics_cache = train_models_in_memory()
+    else:
+        _log_event("Loaded saved model files", 95)
 
     _training_done.set()
+    _log_event("All models ready!", 100)
     return _models
+
+
+_TARGET_CLAMPS = {
+    'E_pct':  (0.0, 100.0),
+    'KD':     (0.0, 200.0),
+    'Z':      (0.0, 10.0),
+    'SF_min': (0.05, 50.0),
+}
+
+def _safe_pred(v, target):
+    """Clamp a model prediction to physically valid range; return None for NaN/inf."""
+    try:
+        f = float(v)
+        if not np.isfinite(f):
+            return None
+        lo, hi = _TARGET_CLAMPS.get(target, (-1e9, 1e9))
+        return round(float(np.clip(f, lo, hi)), 4)
+    except Exception:
+        return None
 
 
 @app.on_event("startup")
@@ -350,6 +413,24 @@ async def startup_event():
     t = threading.Thread(target=load_all_models, daemon=True)
     t.start()
     print("[API] Startup — models loading in background.")
+
+
+@app.get("/training_status")
+async def training_status_stream():
+    import asyncio, json
+    async def event_gen():
+        idx = 0
+        while True:
+            while idx < len(_training_log):
+                yield f"data: {json.dumps(_training_log[idx])}\n\n"
+                idx += 1
+            if _training_done.is_set():
+                yield f"data: {json.dumps({'msg': 'All models ready!', 'pct': 100, 'done': True})}\n\n"
+                return
+            await asyncio.sleep(0.4)
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(event_gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 # ── Core prediction ────────────────────────────────────────────────────────────
@@ -363,7 +444,7 @@ def _rsm_predict_sklearn(t_models, target, X_base, feats_base):
             X_poly = poly.transform(X_base)
             X_sm   = pd.DataFrame(X_poly, columns=names)
             X_sm.insert(0, 'const', 1.0)
-            return round(float(rsm_mdl.predict(X_sm)[0]), 4)
+            return _safe_pred(rsm_mdl.predict(X_sm)[0], target)
         else:
             # Legacy: bare statsmodels object
             from sklearn.preprocessing import PolynomialFeatures
@@ -378,7 +459,7 @@ def _rsm_predict_sklearn(t_models, target, X_base, feats_base):
                 clean.append(s)
             X_sm = pd.DataFrame(X_poly, columns=clean)
             X_sm.insert(0, 'const', 1.0)
-            return round(float(pkg.predict(X_sm)[0]), 4)
+            return _safe_pred(pkg.predict(X_sm)[0], target)
     except Exception:
         return None
 
@@ -386,16 +467,17 @@ def _rsm_predict_sklearn(t_models, target, X_base, feats_base):
 def _paper_rsm_fallback(acid_type, Cin, TBA_pct, DES_ratio_num, target):
     """Compute a reasonable fallback value using paper RSM when ML models not ready."""
     acid = acid_type if acid_type in PAPER_RSM else 'PA'
-    X1 = (Cin * 100 - 10.0) / 5.0
-    X2 = (DES_ratio_num - 1.0) / 0.5
+    # Clamp coded variables to [-2, 2] to prevent polynomial blow-up outside training range
+    X1 = float(np.clip((Cin * 100 - 10.0) / 5.0, -2.0, 2.0))
+    X2 = float(np.clip((DES_ratio_num - 1.0) / 0.5, -2.0, 2.0))
     TOA_molL = (TBA_pct - 5.0) / 15.0 * 1.8 + 0.1
-    X3 = (TOA_molL - 1.0) / 0.9
+    X3 = float(np.clip((TOA_molL - 1.0) / 0.9, -2.0, 2.0))
     e = rsm_predict(acid, X1, X2, X3)
     kd = e / max(100 - e, 0.01)
     if target == 'E_pct': return round(e, 4)
     if target == 'KD':    return round(kd, 4)
     if target == 'Z':     return round(kd * Cin * 0.75, 4)
-    if target == 'SF_min': return round(max(1.0 / kd, 0.05), 4)
+    if target == 'SF_min': return round(max(1.0 / max(kd, 1e-9), 0.05), 4)
     return None
 
 
@@ -405,16 +487,16 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
     # Non-FA/AA/PA acids: only paper RSM available (not in ML training set)
     if acid_type not in ('FA', 'AA', 'PA') and acid_type in PAPER_RSM:
         preds = {}
-        X1 = (Cin * 100 - 10.0) / 5.0
-        X2 = (DES_ratio_num - 1.0) / 0.5
+        X1 = float(np.clip((Cin * 100 - 10.0) / 5.0, -2.0, 2.0))
+        X2 = float(np.clip((DES_ratio_num - 1.0) / 0.5, -2.0, 2.0))
         TOA_molL = (TBA_pct - 5.0) / 15.0 * 1.8 + 0.1
-        X3 = (TOA_molL - 1.0) / 0.9
+        X3 = float(np.clip((TOA_molL - 1.0) / 0.9, -2.0, 2.0))
         e = rsm_predict(acid_type, X1, X2, X3)
         kd = e / max(100 - e, 0.01)
-        preds['E_pct']  = {'RSM': round(e, 4)}
-        preds['KD']     = {'RSM': round(kd, 4)}
-        preds['Z']      = {'RSM': round(kd * Cin * 0.75, 4)}
-        preds['SF_min'] = {'RSM': round(max(1.0 / kd, 0.05), 4)}
+        preds['E_pct']  = {'RSM': _safe_pred(e,                         'E_pct')}
+        preds['KD']     = {'RSM': _safe_pred(kd,                        'KD')}
+        preds['Z']      = {'RSM': _safe_pred(kd * Cin * 0.75,           'Z')}
+        preds['SF_min'] = {'RSM': _safe_pred(1.0 / max(kd, 1e-9),       'SF_min')}
         return preds, ga, go, C_TBA
 
     all_models = load_all_models()
@@ -443,7 +525,8 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
             try:
                 m = t_models['RandomForest']
                 if isinstance(m, dict): m = m['model']
-                t_preds['RandomForest'] = round(float(m.predict(X_full)[0]), 4)
+                v = _safe_pred(m.predict(X_full)[0], target)
+                if v is not None: t_preds['RandomForest'] = v
             except Exception: pass
 
         # XGBoost
@@ -451,7 +534,8 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
             try:
                 m = t_models['XGBoost']
                 if isinstance(m, dict): m = m['model']
-                t_preds['XGBoost'] = round(float(m.predict(X_full)[0]), 4)
+                v = _safe_pred(m.predict(X_full)[0], target)
+                if v is not None: t_preds['XGBoost'] = v
             except Exception: pass
 
         # GPR
@@ -463,21 +547,21 @@ def predict_all(Cin, TBA_pct, DES_ratio_num, acid_type='PA'):
                 mu, sg = gpr.predict(X_s, return_std=True)
                 val = float(scY.inverse_transform(mu.reshape(-1,1)).ravel()[0])
                 std = float(sg[0]) * scY.scale_[0]
-                t_preds['GPR']     = round(val, 4)
-                t_preds['GPR_std'] = round(std, 4)
+                v = _safe_pred(val, target)
+                if v is not None:
+                    t_preds['GPR']     = v
+                    t_preds['GPR_std'] = round(abs(std), 4)
             except Exception: pass
 
         # ANN
         if 'ANN' in t_models:
             try:
-                pkg  = t_models['ANN']
-                scX  = pkg['scaler_X']
-                scY  = pkg['scaler_y']
-                mdl  = pkg['model']
-                X_s  = scX.transform(X_full)
-                y_s  = mdl.predict(X_s, verbose=0).ravel()
-                val  = float(scY.inverse_transform(y_s.reshape(-1,1)).ravel()[0])
-                t_preds['ANN'] = round(val, 4)
+                pkg = t_models['ANN']
+                X_s = pkg['scaler_X'].transform(X_full)
+                y_s = pkg['model'].predict(X_s, verbose=0).ravel()
+                val = float(pkg['scaler_y'].inverse_transform(y_s.reshape(-1,1)).ravel()[0])
+                v = _safe_pred(val, target)
+                if v is not None: t_preds['ANN'] = v
             except Exception: pass
 
         preds[target] = t_preds
@@ -498,6 +582,13 @@ class PredictRequest(BaseModel):
 
 @app.post("/predict")
 def predict(req: PredictRequest):
+    # Return immediately if models not ready — don't hang the connection
+    if not _training_done.is_set():
+        elapsed = int(_training_progress)
+        return {"error": "training_in_progress",
+                "message": f"Models are loading ({elapsed}% done). Please try again in ~1–2 minutes.",
+                "progress": elapsed}
+
     acid = req.acid_type if req.acid_type in PAPER_RSM else "PA"
 
     # If toa_vol_pct provided, convert to mol/L and use as TBA_pct equivalent
@@ -772,6 +863,7 @@ def get_matrix(
     DES_ratio_num: float = Query(1.5),
     Cin: float = Query(0.10),
     TBA_pct: float = Query(10.0),
+    acid_type: str = Query("PA"),
 ):
     x_ranges = {
         "Cin":           np.linspace(0.05, 0.15, steps),
@@ -784,19 +876,25 @@ def get_matrix(
     x_vals = x_ranges[xvar]
     y_vals = x_ranges[yvar]
     grid = []
+    std_grid = []
     for yv in y_vals:
         row = []
+        std_row = []
         for xv in x_vals:
             kw = dict(fixed)
             kw[xvar] = float(xv); kw[yvar] = float(yv)
-            preds, _, _, _ = predict_all(**kw)
+            preds, _, _, _ = predict_all(**kw, acid_type=acid_type)
             v = preds.get(target, {}).get(model)
+            v_std = preds.get(target, {}).get(model + '_std') if model == 'GPR' else None
             row.append(round(v, 4) if v is not None else None)
+            std_row.append(round(v_std, 4) if v_std is not None else None)
         grid.append(row)
+        std_grid.append(std_row)
+    has_std = model == 'GPR' and any(v is not None for row in std_grid for v in row)
     return {"x_vals": [round(v,4) for v in x_vals],
             "y_vals": [round(v,4) for v in y_vals],
-            "z_grid": grid, "xvar": xvar, "yvar": yvar,
-            "target": target, "model": model}
+            "z_grid": grid, "z_std_grid": std_grid if has_std else None,
+            "xvar": xvar, "yvar": yvar, "target": target, "model": model}
 
 
 @app.get("/suggestions")
@@ -929,11 +1027,13 @@ def get_predicted_vs_actual(target: str = Query("E_pct"), model: str = Query("GP
         return {"error": str(e)}
 
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return {"message": "Reactive Extraction Predictor API v3.1",
-            "status": "ok", "docs": "/docs",
-            "paper": "Yıldız et al. (2023) Sep. Sci. Technol."}
+    html_path = os.path.join(ROOT, "index.html")
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse("<h1>API running — frontend not found at root</h1><p>API docs: <a href='/docs'>/docs</a></p>")
 
 @app.get("/health")
 def health():
