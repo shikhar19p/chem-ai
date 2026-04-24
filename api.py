@@ -151,6 +151,16 @@ def rsm_predict(acid: str, X1: float, X2: float, X3: float) -> float:
 _models: dict = {}
 _metrics_cache: list = []
 _training_done = threading.Event()
+_training_log: list = []
+_training_progress: int = 0
+
+def _log_event(msg: str, pct: int = None):
+    global _training_progress
+    import time as _time
+    if pct is not None:
+        _training_progress = pct
+    _training_log.append({"msg": msg, "pct": _training_progress, "ts": _time.time()})
+    print(f"[Training {_training_progress}%] {msg}")
 
 
 def train_models_in_memory():
@@ -167,14 +177,19 @@ def train_models_in_memory():
     import statsmodels.api as sm
 
     # Prefer real data from paper; fall back to synthetic
+    _log_event("Loading dataset...", 0)
     df, source = load_or_generate()
     df = add_polynomial_features(df)
     print(f"[API] Dataset: {len(df)} rows ({source})")
+    _log_event(f"Dataset ready: {len(df)} rows ({source})", 5)
 
     trained: dict = {}
     metrics: list = []
 
+    _target_step = [0]
     for target in TARGETS:
+        _base = 5 + _target_step[0] * 23
+        _log_event(f"Training {target}...", _base)
         t_models: dict = {}
 
         # ── Random Forest ───────────────────────────────────────────────────
@@ -190,6 +205,7 @@ def train_models_in_memory():
         rmse_rf = float(np.sqrt(mean_squared_error(y_te, rf.predict(X_te))))
         metrics.append({'model': 'RandomForest', 'target': target,
                         'r2': round(r2_rf, 4), 'rmse': round(rmse_rf, 4)})
+        _log_event(f"  ✓ {target} RandomForest R²={r2_rf:.4f}", _base + 4)
 
         # ── XGBoost ────────────────────────────────────────────────────────
         xgb_m = xgb.XGBRegressor(n_estimators=300, max_depth=5, learning_rate=0.05,
@@ -202,6 +218,7 @@ def train_models_in_memory():
         rmse_xgb = float(np.sqrt(mean_squared_error(y_te, xgb_m.predict(X_te))))
         metrics.append({'model': 'XGBoost', 'target': target,
                         'r2': round(r2_xgb, 4), 'rmse': round(rmse_xgb, 4)})
+        _log_event(f"  ✓ {target} XGBoost R²={r2_xgb:.4f}", _base + 8)
 
         # ── GPR (scaled, base features) ────────────────────────────────────
         (X_tr_s2, X_te_s2, y_tr_s2, y_te_s2,
@@ -220,6 +237,7 @@ def train_models_in_memory():
         t_models['GPR'] = {'model': gpr, 'scaler_X': scX2, 'scaler_y': scY2}
         metrics.append({'model': 'GPR', 'target': target,
                         'r2': round(r2_gpr, 4), 'rmse': round(rmse_gpr, 4)})
+        _log_event(f"  ✓ {target} GPR R²={r2_gpr:.4f}", _base + 14)
 
         # ── RSM (statsmodels OLS + quadratic features) ──────────────────────
         try:
@@ -248,6 +266,7 @@ def train_models_in_memory():
             rmse_rsm    = float(np.sqrt(mean_squared_error(y_te_b, y_pred_rsm)))
             metrics.append({'model': 'RSM', 'target': target,
                             'r2': round(r2_rsm, 4), 'rmse': round(rmse_rsm, 4)})
+            _log_event(f"  ✓ {target} RSM R²={r2_rsm:.4f}", _base + 17)
         except Exception as e:
             print(f"[API] RSM failed for {target}: {e}")
 
@@ -299,10 +318,12 @@ def train_models_in_memory():
             metrics.append({'model': 'ANN', 'target': target,
                             'r2': round(r2_ann, 4), 'rmse': round(rmse_ann, 4)})
             print(f"[API] ANN {target}: R²={r2_ann:.4f}")
+            _log_event(f"  ✓ {target} ANN R²={r2_ann:.4f}", _base + 23)
         except Exception as e:
             print(f"[API] ANN training skipped for {target}: {e}")
 
         trained[target] = t_models
+        _target_step[0] += 1
         print(f"[API] {target}: RF={r2_rf:.4f}  XGB={r2_xgb:.4f}  GPR={r2_gpr:.4f}")
 
     return trained, metrics
@@ -313,6 +334,7 @@ def load_all_models():
     if _models:
         return _models
 
+    _log_event("Checking for saved model files...", 0)
     # Try saved .pkl / .keras files first
     any_found = False
     for target in TARGETS:
@@ -339,9 +361,13 @@ def load_all_models():
         _models[target] = t
 
     if not any_found:
+        _log_event("No saved models found — training from scratch...", 0)
         _models, _metrics_cache = train_models_in_memory()
+    else:
+        _log_event("Loaded saved model files", 95)
 
     _training_done.set()
+    _log_event("All models ready!", 100)
     return _models
 
 
@@ -350,6 +376,24 @@ async def startup_event():
     t = threading.Thread(target=load_all_models, daemon=True)
     t.start()
     print("[API] Startup — models loading in background.")
+
+
+@app.get("/training_status")
+async def training_status_stream():
+    import asyncio, json
+    async def event_gen():
+        idx = 0
+        while True:
+            while idx < len(_training_log):
+                yield f"data: {json.dumps(_training_log[idx])}\n\n"
+                idx += 1
+            if _training_done.is_set():
+                yield f"data: {json.dumps({'msg': 'All models ready!', 'pct': 100, 'done': True})}\n\n"
+                return
+            await asyncio.sleep(0.4)
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(event_gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 # ── Core prediction ────────────────────────────────────────────────────────────
@@ -785,19 +829,25 @@ def get_matrix(
     x_vals = x_ranges[xvar]
     y_vals = x_ranges[yvar]
     grid = []
+    std_grid = []
     for yv in y_vals:
         row = []
+        std_row = []
         for xv in x_vals:
             kw = dict(fixed)
             kw[xvar] = float(xv); kw[yvar] = float(yv)
             preds, _, _, _ = predict_all(**kw, acid_type=acid_type)
             v = preds.get(target, {}).get(model)
+            v_std = preds.get(target, {}).get(model + '_std') if model == 'GPR' else None
             row.append(round(v, 4) if v is not None else None)
+            std_row.append(round(v_std, 4) if v_std is not None else None)
         grid.append(row)
+        std_grid.append(std_row)
+    has_std = model == 'GPR' and any(v is not None for row in std_grid for v in row)
     return {"x_vals": [round(v,4) for v in x_vals],
             "y_vals": [round(v,4) for v in y_vals],
-            "z_grid": grid, "xvar": xvar, "yvar": yvar,
-            "target": target, "model": model}
+            "z_grid": grid, "z_std_grid": std_grid if has_std else None,
+            "xvar": xvar, "yvar": yvar, "target": target, "model": model}
 
 
 @app.get("/suggestions")
