@@ -967,6 +967,18 @@ async function runPrediction() {
       }),
     });
     const data = await resp.json();
+    if (data.error === 'training_in_progress') {
+      document.getElementById('status-msg').textContent = `⏳ ${data.message}`;
+      document.getElementById('status-bar').style.display = 'flex';
+      document.getElementById('predict-btn').disabled = false;
+      setTimeout(runPrediction, 15000);
+      return;
+    }
+    if (data.error || data.detail) {
+      document.getElementById('status-msg').textContent = `⚠️ ${data.message || data.detail || data.error}`;
+      document.getElementById('predict-btn').disabled = false;
+      return;
+    }
     _lastResult = data;
     _lastParams = { cin: Cin, hdes, toa: toa_vol, acid: sysAcid };
     renderResults(data, Cin, hdes, toa_vol);
@@ -2068,7 +2080,7 @@ function loadSettings() {
       if (chip) chip.classList.add('active');
     }
     const ext = localStorage.getItem('hdes_extractant');
-    if (ext) document.getElementById('extractant-type').value = ext;
+    if (ext) { document.getElementById('extractant-type').value = ext; updateExtractantNote(); }
     const combo = localStorage.getItem('hdes_combo');
     if (combo) document.getElementById('hdes-combo').value = combo;
   } catch(e) {}

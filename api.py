@@ -559,6 +559,13 @@ class PredictRequest(BaseModel):
 
 @app.post("/predict")
 def predict(req: PredictRequest):
+    # Return immediately if models not ready — don't hang the connection
+    if not _training_done.is_set():
+        elapsed = int(_training_progress)
+        return {"error": "training_in_progress",
+                "message": f"Models are loading ({elapsed}% done). Please try again in ~1–2 minutes.",
+                "progress": elapsed}
+
     acid = req.acid_type if req.acid_type in PAPER_RSM else "PA"
 
     # If toa_vol_pct provided, convert to mol/L and use as TBA_pct equivalent
