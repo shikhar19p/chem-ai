@@ -993,35 +993,77 @@ def bayesian_optimal(acid: str = Query("PA")):
 
 @app.get("/predicted_vs_actual")
 def get_predicted_vs_actual(target: str = Query("E_pct"), model: str = Query("GPR")):
-    """Load training data and return predicted vs actual pairs."""
+    """Return predicted vs actual for training dataset — batch prediction version."""
     try:
         from src.data_generator import load_or_generate
         from src.feature_engineering import add_polynomial_features
-        df, _ = load_or_generate()
-        df = add_polynomial_features(df)
+        from config import FULL_FEATURES, BASE_FEATURES
 
-        all_models = load_all_models()
         if not _training_done.is_set():
             return {"error": "Models still training"}
 
+        all_mods = load_all_models()
+        t_models = all_mods.get(target, {})
+        if model not in t_models:
+            return {"error": f"Model '{model}' not available for '{target}'"}
+
+        df, _ = load_or_generate()
+        df = add_polynomial_features(df)
+
+        if target not in df.columns:
+            return {"error": f"Target '{target}' not in dataset"}
+
+        acids = [
+            'FA' if row.get('is_FA', 0) else ('AA' if row.get('is_AA', 0) else 'PA')
+            for _, row in df.iterrows()
+        ]
+        y_actual = df[target].values.astype(float)
+        m_pkg = t_models[model]
+
+        if model == 'RSM':
+            # RSM uses a fitted OLS pipeline — still row-by-row but fast
+            results = []
+            for i, (_, row) in enumerate(df.iterrows()):
+                try:
+                    pr, _, _, _ = predict_all(
+                        float(row['Cin']), float(row['TBA_pct']), float(row['DES_ratio_num']),
+                        acid_type=acids[i]
+                    )
+                    pv = pr.get(target, {}).get('RSM')
+                    if pv is not None:
+                        results.append({'actual': round(float(row[target]), 4),
+                                        'predicted': round(pv, 4),
+                                        'acid': acids[i], 'Cin': float(row['Cin'])})
+                except Exception:
+                    pass
+            return {'target': target, 'model': model, 'points': results}
+
+        # Batch prediction for ML models (RF, XGB, GPR, ANN)
+        feat_cols = [c for c in (BASE_FEATURES if model == 'GPR' else FULL_FEATURES)
+                     if c in df.columns]
+        X = df[feat_cols].values.astype(float)
+
+        if model == 'GPR':
+            gpr, scX, scY = m_pkg['model'], m_pkg['scaler_X'], m_pkg['scaler_y']
+            y_pred = scY.inverse_transform(
+                gpr.predict(scX.transform(X)).reshape(-1, 1)).ravel()
+        elif model == 'ANN':
+            scX, scY = m_pkg['scaler_X'], m_pkg['scaler_y']
+            y_pred_s = m_pkg['model'].predict(scX.transform(X), verbose=0).ravel()
+            y_pred = scY.inverse_transform(y_pred_s.reshape(-1, 1)).ravel()
+        else:  # RandomForest, XGBoost
+            m = m_pkg['model'] if isinstance(m_pkg, dict) else m_pkg
+            y_pred = m.predict(X)
+
+        lo, hi = _TARGET_CLAMPS.get(target, (None, None))
         results = []
-        for _, row in df.iterrows():
-            acid = 'FA' if row.get('is_FA', 0) else ('AA' if row.get('is_AA', 0) else 'PA')
-            try:
-                preds_r, _, _, _ = predict_all(
-                    float(row['Cin']), float(row['TBA_pct']), float(row['DES_ratio_num']),
-                    acid_type=acid
-                )
-                pred_val = preds_r.get(target, {}).get(model)
-                if pred_val is not None and target in row:
-                    results.append({
-                        'actual': round(float(row[target]), 4),
-                        'predicted': round(float(pred_val), 4),
-                        'acid': acid,
-                        'Cin': float(row['Cin']),
-                    })
-            except Exception:
-                pass
+        for i in range(len(df)):
+            pv = float(y_pred[i])
+            if lo is not None:
+                pv = max(lo, min(hi, pv))
+            results.append({'actual': round(float(y_actual[i]), 4),
+                             'predicted': round(pv, 4),
+                             'acid': acids[i], 'Cin': float(df.iloc[i]['Cin'])})
         return {'target': target, 'model': model, 'points': results}
     except Exception as e:
         return {"error": str(e)}

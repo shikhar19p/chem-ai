@@ -1359,11 +1359,13 @@ async function load3DSurface() {
   const acid = document.getElementById('surf-acid').value;
   const xvar = document.getElementById('surf-xvar').value;
   const yvar = document.getElementById('surf-yvar').value;
+  const el3d = document.getElementById('surface3d-chart');
   if(xvar===yvar) return;
+  el3d.innerHTML = '<div class="status-bar" style="margin:20px;"><div class="spinner"></div><span>Loading 3D surface…</span></div>';
   try {
     const url = `${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=28&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`;
     const d = await safeFetch(url);
-    if(d.error){document.getElementById('surface3d-chart').innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${d.error}</div>`;return;}
+    if(d.error){el3d.innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${d.error}</div>`;return;}
     const trace = {
       type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
       colorscale:[
@@ -1388,7 +1390,7 @@ async function load3DSurface() {
       title:{text:`${acid} — 3D RSM Response Surface (${xvar} vs ${yvar})`,font:{color:'#0f172a',size:13}},
     };
     Plotly.newPlot('surface3d-chart',[trace],layout,{responsive:true});
-  } catch(e){console.error('3D surface',e);}
+  } catch(e){el3d.innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${e.message||e}</div>`;}
 }
 
 // ════════════════════════════════════════
@@ -1451,6 +1453,8 @@ async function loadSensitivity() {
   const xvar  =document.getElementById('sens-xvar').value;
   const target=document.getElementById('sens-target').value;
   const acid  =sysAcid||'PA';
+  const elSens=document.getElementById('sensitivity-chart');
+  elSens.innerHTML='<div class="status-bar" style="margin:20px;"><div class="spinner"></div><span>Loading sensitivity…</span></div>';
   try {
     const rows = await safeFetch(`${API}/sensitivity?xvar=${xvar}&target=${target}&steps=15&acid_type=${acid}`);
     if(!Array.isArray(rows)||!rows.length){
@@ -1488,7 +1492,7 @@ async function loadSensitivity() {
         xaxis:{title:{text:AXIS_LABELS[xvar]||xvar,font:{size:11}}},
         yaxis:{title:{text:target,font:{size:11}}},
       }),{responsive:true,displayModeBar:false});
-  } catch(e){console.error(e);}
+  } catch(e){elSens.innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${e.message||e}</div>`;}
 }
 
 // ════════════════════════════════════════
@@ -1584,14 +1588,16 @@ async function runMATLAB(){
       `X2 = (${HDES_ratio}−1)/0.5 = ${d.coded.X2}\n`+
       `X3 = (${TOA_molL}−1)/0.9 = ${d.coded.X3}\n\n`+
       RSM_EQ[acid]+`\n\n% Result: Y = ${d.E_pct}%`;
-  } catch(e){console.error(e);}
+  } catch(e){document.getElementById('matlab-result').style.display='block';document.getElementById('matlab-metrics').innerHTML=`<div class="info-box">⚠️ ${e.message||e}</div>`;}
 }
 
 async function loadRSMContour(){
   const acid=document.getElementById('rsm-acid2').value;
   const xvar=document.getElementById('rsm-xvar2').value;
   const yvar=document.getElementById('rsm-yvar2').value;
+  const elRSM=document.getElementById('rsm-contour-chart');
   if(xvar===yvar) return;
+  elRSM.innerHTML='<div class="status-bar" style="margin:20px;"><div class="spinner"></div><span>Loading RSM contour…</span></div>';
   try {
     const d=await safeFetch(`${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=30&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`);
     if(d.error){document.getElementById('rsm-contour-chart').innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${d.error}</div>`;return;}
@@ -1609,7 +1615,7 @@ async function loadRSMContour(){
         yaxis:{title:{text:d.y_info.label,font:{size:11}}},
         margin:{t:45,b:65,l:75,r:90},
       }),{responsive:true,displayModeBar:false});
-  } catch(e){console.error(e);}
+  } catch(e){elRSM.innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${e.message||e}</div>`;}
 }
 
 // ════════════════════════════════════════
@@ -1618,6 +1624,8 @@ async function loadRSMContour(){
 async function loadIsotherms(){
   const tba=document.getElementById('iso-tba').value;
   const des=document.getElementById('iso-des').value;
+  const elIso=document.getElementById('iso-chart');
+  elIso.innerHTML='<div class="status-bar" style="margin:20px;"><div class="spinner"></div><span>Loading isotherms…</span></div>';
   try {
     const d=await safeFetch(`${API}/isotherms?TBA_pct=${tba}&DES_ratio_num=${des}`);
     const lp=d.Langmuir_params||{}, fp=d.Freundlich_params||{};
@@ -1670,7 +1678,7 @@ async function loadIsotherms(){
           yaxis:{title:{text:'C\u1D49/q',font:{size:11}}},
         }),{responsive:true,displayModeBar:false});
     }
-  } catch(e){console.error(e);}
+  } catch(e){elIso.innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${e.message||e}</div>`;}
 }
 
 // ════════════════════════════════════════
@@ -2069,7 +2077,7 @@ async function loadBayesSurface(acid, coded){
       title:{text:`${acid} — Optimisation Landscape (at optimal X1=${coded.X1})`,font:{color:'#0f172a',size:12}},
     };
     Plotly.newPlot('bayes-surface-chart',[trace],layout,{responsive:true});
-  } catch(e){console.error(e);}
+  } catch(e){document.getElementById('bayes-surface-chart').innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${e.message||e}</div>`;}
 }
 
 // ════════════════════════════════════════
