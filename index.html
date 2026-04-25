@@ -892,6 +892,21 @@ const API = (() => {
   return window.location.origin;
 })();
 
+// safeFetch: parses response as JSON; if server returns HTML (Render 502/503
+// proxy error while service boots) it throws a readable error instead of
+// "Unexpected token '<'".
+async function safeFetch(url, opts) {
+  let resp;
+  try { resp = await fetch(url, opts); }
+  catch(e) { throw new Error(`Network error — service may be offline (${e.message})`); }
+  const text = await resp.text();
+  try { return JSON.parse(text); }
+  catch(_) {
+    if (!resp.ok) throw new Error(`Service unavailable (HTTP ${resp.status}) — Render may be waking up, try again in ~30 s`);
+    throw new Error(`Unexpected response format from server`);
+  }
+}
+
 let currentAcid = 'PA';
 let sysAcid = 'PA';
 
@@ -979,7 +994,7 @@ async function runPrediction() {
   document.getElementById('status-msg').textContent = 'Running 5 models…';
 
   try {
-    const resp = await fetch(`${API}/predict`, {
+    const data = await safeFetch(`${API}/predict`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         Cin,
@@ -990,7 +1005,6 @@ async function runPrediction() {
         hdes_combo: document.getElementById('hdes-combo')?.value || 'MenthDecA'
       }),
     });
-    const data = await resp.json();
     if (data.error === 'training_in_progress') {
       document.getElementById('status-msg').textContent = `⏳ ${data.message}`;
       document.getElementById('status-bar').style.display = 'flex';
@@ -1116,8 +1130,7 @@ function renderResults(data, cinPct, hdes, toa) {
 async function loadAccuracy() {
   document.getElementById('acc-loading').style.display = 'flex';
   try {
-    const resp = await fetch(`${API}/model_accuracy`);
-    const data = await resp.json();
+    const data = await safeFetch(`${API}/model_accuracy`);
     if(!Array.isArray(data)) throw new Error('Backend returned non-array: ' + JSON.stringify(data).slice(0,80));
     renderAccuracy(data);
   } catch(e) {
@@ -1202,8 +1215,7 @@ async function loadPredVsActual() {
   statsEl.innerHTML = '<div class="status-bar"><div class="spinner"></div><span>Loading…</span></div>';
   chartEl.innerHTML = '';
   try {
-    const resp = await fetch(`${API}/predicted_vs_actual?target=${target}&model=${model}`);
-    const d = await resp.json();
+    const d = await safeFetch(`${API}/predicted_vs_actual?target=${target}&model=${model}`);
     if(d.error){ statsEl.innerHTML=`<div class="info-box">⚠️ ${d.error}</div>`; return; }
     const pts = d.points||[];
     if(!pts.length){ statsEl.innerHTML='<div class="info-box">No data — models may still be training.</div>'; return; }
@@ -1253,8 +1265,7 @@ async function loadPredVsActual() {
 // ════════════════════════════════════════
 async function loadANNArch() {
   try {
-    const resp = await fetch(`${API}/ann_architecture`);
-    const data = await resp.json();
+    const data = await safeFetch(`${API}/ann_architecture`);
     renderANNDiagram(data);
   } catch(e) {
     document.getElementById('ann-diagram').innerHTML = `<div class="info-box">⚠️ ${e.message}</div>`;
@@ -1351,8 +1362,7 @@ async function load3DSurface() {
   if(xvar===yvar) return;
   try {
     const url = `${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=28&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`;
-    const resp = await fetch(url);
-    const d = await resp.json();
+    const d = await safeFetch(url);
     if(d.error){document.getElementById('surface3d-chart').innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${d.error}</div>`;return;}
     const trace = {
       type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
@@ -1394,8 +1404,7 @@ async function loadHeatmap() {
   if(xvar===yvar){el.innerHTML='<div class="info-box" style="margin:20px;">⚠️ X and Y variables must be different.</div>';return;}
   el.innerHTML='<div class="info-box" style="margin:20px;text-align:center;">⏳ Generating heatmap…</div>';
   try {
-    const resp = await fetch(`${API}/matrix?target=${target}&model=${model}&xvar=${xvar}&yvar=${yvar}&steps=14&acid_type=${acid}`);
-    const d = await resp.json();
+    const d = await safeFetch(`${API}/matrix?target=${target}&model=${model}&xvar=${xvar}&yvar=${yvar}&steps=14&acid_type=${acid}`);
     if(d.error){el.innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${d.error}</div>`;return;}
     const hasData = d.z_grid && d.z_grid.some(row=>row.some(v=>v!=null));
     if(!hasData){el.innerHTML='<div class="info-box" style="margin:20px;">⚠️ No data — model may still be training. Try again in a moment.</div>';return;}
@@ -1443,8 +1452,7 @@ async function loadSensitivity() {
   const target=document.getElementById('sens-target').value;
   const acid  =sysAcid||'PA';
   try {
-    const resp = await fetch(`${API}/sensitivity?xvar=${xvar}&target=${target}&steps=15&acid_type=${acid}`);
-    const rows = await resp.json();
+    const rows = await safeFetch(`${API}/sensitivity?xvar=${xvar}&target=${target}&steps=15&acid_type=${acid}`);
     if(!Array.isArray(rows)||!rows.length){
       document.getElementById('sensitivity-chart').innerHTML='<div class="info-box" style="margin:20px;">No data — backend may still be training models.</div>';
       return;
@@ -1560,8 +1568,7 @@ async function runMATLAB(){
   const TOA_molL=parseFloat(document.getElementById('m-toa').value);
   try {
     const url=`${API}/matlab_predict?acid=${acid}&acid_pct=${acid_pct}&HDES_ratio=${HDES_ratio}&TOA_molL=${TOA_molL}`;
-    const resp=await fetch(url);
-    const d=await resp.json();
+    const d=await safeFetch(url);
     if(d.error){alert(d.error);return;}
     document.getElementById('matlab-result').style.display='block';
     document.getElementById('matlab-metrics').innerHTML=`
@@ -1586,8 +1593,7 @@ async function loadRSMContour(){
   const yvar=document.getElementById('rsm-yvar2').value;
   if(xvar===yvar) return;
   try {
-    const resp=await fetch(`${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=30&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`);
-    const d=await resp.json();
+    const d=await safeFetch(`${API}/matlab_surface?acid=${acid}&xvar=${xvar}&yvar=${yvar}&steps=30&fixed_X1=-1&fixed_X2=-1&fixed_X3=1`);
     if(d.error){document.getElementById('rsm-contour-chart').innerHTML=`<div class="info-box" style="margin:20px;">⚠️ ${d.error}</div>`;return;}
     const trace={
       type:'contour', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
@@ -1613,8 +1619,7 @@ async function loadIsotherms(){
   const tba=document.getElementById('iso-tba').value;
   const des=document.getElementById('iso-des').value;
   try {
-    const resp=await fetch(`${API}/isotherms?TBA_pct=${tba}&DES_ratio_num=${des}`);
-    const d=await resp.json();
+    const d=await safeFetch(`${API}/isotherms?TBA_pct=${tba}&DES_ratio_num=${des}`);
     const lp=d.Langmuir_params||{}, fp=d.Freundlich_params||{};
     document.getElementById('iso-params').innerHTML=`
       <div class="iso-card"><div class="iso-title">Langmuir Model</div>
@@ -1987,8 +1992,7 @@ async function loadBayesian(){
   document.getElementById('bayes-loading').style.display = 'flex';
   document.getElementById('bayes-content').innerHTML = '';
   try {
-    const resp = await fetch(`${API}/bayesian_optimal?acid=${acid}`);
-    const d = await resp.json();
+    const d = await safeFetch(`${API}/bayesian_optimal?acid=${acid}`);
     if(d.error||d.detail||!d.optimal){ document.getElementById('bayes-content').innerHTML=`<div class="info-box">⚠️ ${d.error||d.detail||'No optimum found'}</div>`; return; }
     renderBayesian(d);
     loadBayesSurface(acid, d.coded);
@@ -2040,8 +2044,7 @@ function renderBayesian(d){
 
 async function loadBayesSurface(acid, coded){
   try {
-    const resp = await fetch(`${API}/matlab_surface?acid=${acid}&xvar=X3&yvar=X2&steps=30&fixed_X1=${coded.X1}&fixed_X2=-1&fixed_X3=1`);
-    const d = await resp.json();
+    const d = await safeFetch(`${API}/matlab_surface?acid=${acid}&xvar=X3&yvar=X2&steps=30&fixed_X1=${coded.X1}&fixed_X2=-1&fixed_X3=1`);
     if(d.error) return;
     const trace = {
       type:'surface', x:d.x_info.vals, y:d.y_info.vals, z:d.z_grid,
